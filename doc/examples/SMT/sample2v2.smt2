@@ -1,4 +1,4 @@
-; File name:    Sample2.smt2
+; File name:    Sample2v2.smt2
 ; 
 ; Copyright (c) March, 2020 - Matteo Nicoli
 ;
@@ -41,14 +41,6 @@
     )
 )
 
-; Post-condition function
-(define-fun post ((_f Int) (_i Int) (_x Int) (_A (Array Int Int))) Bool
-    (=
-        (= _f 1)
-        (= _x (select _A _i))
-    )   
-)
-
 ; Transition function is called DIM times:
 ; for practical reasons, we are considering here DIM = 2
 (assert (body f0 f1 f2 f3 i0 i1 A x))
@@ -57,9 +49,15 @@
 ; Post-condition (negated)
 (assert
     (not
-        (or
-            (post f3 i0 x A)      
-            (post f6 i1 x A)
+        (=
+            (or 
+                (= f3 1) 
+                (= f6 1)
+            )
+            (or 
+                (= x (select A i0))
+                (= x (select A i1))
+            )
         )
     )
 )

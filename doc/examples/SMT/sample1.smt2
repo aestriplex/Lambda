@@ -10,10 +10,10 @@
 (declare-const y4 Int)
 (declare-const x0 Bool)
 
-; Precondizione, contiene l'inizializzazione delle variabili
+; Pre-condition: variables initialization
 (assert (= y1 8))
 
-; Corpo del programma espresso in SSA
+; Body of the program
 (assert
 	(and
 		(= y2 (- y1 1))
@@ -29,8 +29,7 @@
 	)
 )
 
-; Negazione della post-condizione 
-; (la condizione che voglio che si verifichi)
+; Post-condition (negated)
 (assert
 	(not
 		(or
@@ -40,9 +39,6 @@
 	)
 )
 
-; Mi deve dare 'unsat' (cioe`, la negazione della
-; post condizione deve essere insoddisfacibile. 
+; `unsat` expected
 (check-sat)
-
-; Se ritorna 'sat' significa che ho alemno un controesempio,
-; che posso farmi ritornare con l'istruzione (get-model)
+(exit)
