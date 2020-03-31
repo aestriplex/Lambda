@@ -22,15 +22,25 @@ class ScriptTypeException(Exception) :
     def __str__(self) :
         return self.msg
 
+class Scope :
+    pass
+
 class Body :
     
-    def __init__(self,_type) :
-        self._type = _type
+    def __init__(self) :
+        self._contempt = []
     
     def __str__(self) :
-        return f"{type(self._type).__name__}"
+        return f"{*self._contempt}"
+
+    def push(self,obj) :
+        pass
 
 class Variable :
+
+    _name = None
+    _t = None
+    _value = None
     
     def __init__(self, src, depth) :
         
@@ -38,6 +48,13 @@ class Variable :
             raise DepthTypeException(type(depth))
             
         self.depth = depth
+        self._parse_var(src)
+    
+    def _parse_var(self,src) :
+        pass
+
+
+body = Body()
 
 def parse(src) :
     
