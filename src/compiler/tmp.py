@@ -35,8 +35,16 @@ class VarKind(Enum) :
     const = 1
     
 class VarType :
-    identifier = "Identifier"
+    literal = "Literal"
     obj = "ObjectExpression"
+
+class Function :
+
+    def __init__(self) :
+        pass
+
+    def __str__(self) :
+        pass
 
 class Variable :
 
@@ -57,9 +65,9 @@ class Variable :
         self._value = self._get_value(src)
     
     def _get_value(self,src) :
-        if src.id.type == VarType.identifier :
+        if src.init.type == VarType.literal :
             return src.init.value
-        if src.id.type == VarType.obj :
+        if src.init.type == VarType.obj :
             return self._parse_object(src.init.properties)
     
     def _parse_object(self,prop) :
@@ -105,6 +113,6 @@ try :
 except Exception as ex:
     print(f"ERROR: {ex}")
     exit()
-print(source.body)
+#print(source.body)
 l = parse(source.body)
 print(*l)
