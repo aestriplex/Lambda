@@ -6,3 +6,7 @@ class Block(Enum) :
     declaration = 2
     assignment = 3
     conditional = 4
+
+class VarType(Enum) :
+    var = 0
+    const = 1
