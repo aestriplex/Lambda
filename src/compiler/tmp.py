@@ -3,7 +3,8 @@ from enum import Enum
 
 var = "VariableDeclaration"
 expr = "ExpressionStatement"
-fun = ["FunctionDeclaration", "FunctionExpression","ArrowFunctionExpression"]
+fun_declaration = "FunctionDeclaration"
+fun_expr = ["FunctionExpression","ArrowFunctionExpression"]
 declarator = ["VariableDeclarator","ObjectDeclarator"]
 
 class DepthTypeException(Exception) :
@@ -95,7 +96,7 @@ def is_variable(element) :
     return element == var
 
 def is_function(element) :
-    return element in fun
+    return element == fun_declaration
 
 def parse(src) :
 
@@ -113,6 +114,6 @@ try :
 except Exception as ex:
     print(f"ERROR: {ex}")
     exit()
-#print(source.body)
+print(source.body)
 l = parse(source.body)
-print(*l)
+#print(*l)
