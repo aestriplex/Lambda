@@ -1,7 +1,7 @@
 import esprima
 from enum import Enum
 
-var = "VariableDeclaration"
+var = ["VariableDeclaration","VariableDeclarator"]
 expr = "ExpressionStatement"
 fun_declaration = "FunctionDeclaration"
 fun_expr = ["FunctionExpression","ArrowFunctionExpression"]
@@ -49,21 +49,14 @@ class VarType :
 
 class Function :
 
-    _name = None
-    _block = None
-    _params = []
-
     def __init__(self,src) :
-        self._parse_fun(src)
+        self._name = src.id.name
+        self._params = [Variable(p.name,"var") for p in src.params]
+        self._block = parse(src.body.body)
 
     def __str__(self) :
         return f"<FUN: {self._name}>"
 
-    def _parse_fun(self,src) :
-        self._name = src.id.name
-        self._params = [Variable(p.name,"var") for p in src.params]
-        self._block = parse(src.body.body)
-    
 class Block :
 
     depth = None
@@ -126,18 +119,25 @@ def _get_variables(declarations, kind) :
         return v
     
 def is_variable(element) :
-    return element == var
+    return element.type in var and \
+        element.init.type in var 
 
 def is_function(element) :
-    return element == fun_declaration
+    if element.type == fun_declaration :
+        return 1
+    if element.type in var and element.init.type in fun_expr :
+        return 2
+    return None
 
 def parse(src) :
 
     body = []
     for e in src :
-        if is_function(e.type) :
+        if is_function(e) == 1 :
             body.append(Function(e))
-        if is_variable(e.type) :
+        if is_function(e) == 2 :
+            body.append(Function(e.init))
+        if is_variable(e) :
             body += _get_variables(e.declarations,e.kind)
     return body
 
@@ -150,4 +150,4 @@ except Exception as ex:
     exit()
 print(source.body)
 l = parse(source.body)
-print(*l)
+#print(*l)
