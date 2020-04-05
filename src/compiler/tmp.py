@@ -1,7 +1,7 @@
 import esprima
 from enum import Enum
 
-var = ["VariableDeclaration","VariableDeclarator"]
+var = "VariableDeclaration"
 expr = "ExpressionStatement"
 fun_declaration = "FunctionDeclaration"
 fun_expr = ["FunctionExpression","ArrowFunctionExpression"]
@@ -114,20 +114,18 @@ def _get_variables(declarations, kind) :
     
     v = []
     for d in declarations :
-        v.append(_parse_variable(d,kind))
+        if d.type in fun_expr :
+            v.append(Function(d))
+        else :
+            v.append(_parse_variable(d,kind))
     if v != [] :
         return v
     
 def is_variable(element) :
-    return element.type in var and \
-        element.init.type in var 
+    return element.type == var
 
 def is_function(element) :
-    if element.type == fun_declaration :
-        return 1
-    if element.type in var and element.init.type in fun_expr :
-        return 2
-    return None
+    return  element.type == fun_declaration
 
 def parse(src) :
 
@@ -150,4 +148,4 @@ except Exception as ex:
     exit()
 print(source.body)
 l = parse(source.body)
-#print(*l)
+print(*l)
