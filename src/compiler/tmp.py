@@ -1,7 +1,12 @@
+# TODO: 
+# (1) make Context done
+# (2) implement array theory
+# (3) implement async functions theory
+
 import esprima
 from enum import Enum
 from abc import ABC, abstractmethod
-from z3 import *
+from z3 import Int, Real
 import time
 
 var = "VariableDeclaration"
@@ -184,6 +189,18 @@ class Variable(Exe) :
         i = len(occ[self._name])
         if self._value is not None :
             assertions.append(occ[self._name][i-1] == self._value)
+
+class Context :
+    
+    def __init__(self) :
+        self._occurrencies = {}
+        self._assertions = []
+
+    def __src__(self) :
+        pass
+
+    def add(self,occurrence) :
+        pass
 
 def _parse_variable(src, kind) :   
     kind = _get_kind(kind)
