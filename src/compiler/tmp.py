@@ -197,12 +197,12 @@ class Context :
         self._assertions = []
 
     def __src__(self) :
-        pass
+        return f""
 
     def add(self,occurrence) :
         pass
 
-def _parse_variable(src, kind) :   
+def _parse_variable(src, kind) :
     kind = _get_kind(kind)
     name = src.id.name
     value = _get_var_value(src)
