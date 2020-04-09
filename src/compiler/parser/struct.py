@@ -1,3 +1,4 @@
+from sys import getsizeof
 from abc import ABC, abstractmethod
 from exceptions import VarTypeException
 
@@ -96,7 +97,7 @@ class Context :
         self._assertions = []
 
     def __src__(self) :
-        return f""
+        return f"<Context ({getsizeof(self)})>"
 
     def add(self,occurrence) :
         pass
