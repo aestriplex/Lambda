@@ -193,7 +193,7 @@ class Expression(Exe) :
             elif type(self.second) == bool :
                 val.append(Bool(lbl))
             else :
-                raise UnsupportedTypeException(self.second)
+                raise UnsupportedTypeException(type(self.second))
         return val
 
     def _get_binary_expr(self) :
@@ -314,6 +314,7 @@ class Context(Exe) :
     def __init__(self) :
         self._occurrencies = {}
         self._vars = []
+        self._types = {}
 
     def __src__(self) :
         return f"<Context (size {getsizeof(self)})>"
