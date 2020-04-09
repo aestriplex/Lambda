@@ -138,51 +138,63 @@ class Expression(Exe) :
         self.operator = operator
         self.first = first
         self.second = second
-        if kind == ExprKind.assignment or kind == ExprKind.update :
-            if self.operator == "=" :
-                lbl = f"{self.first}{ctx.next(self.first)}"
-                ctx.add(self.first)
-                if type(self.second) == int :
-                    self._val = Int(lbl)
-                elif type(self.second) == float :
-                    self._val = Real(lbl)
-                elif type(self.second) == bool :
-                    self._val = Bool(lbl)
-                else :
-                    raise UnsupportedTypeException(self.second)
-                self._constraints = [self._val == self.second]
-            else :
-                lbl_1 = f"{self.first}{ctx.next(self.first)}"
-                ctx.add(self.first)
-                lbl_2 = f"{self.first}{ctx.next(self.first)}"
-                ctx.add(self.first)
-                self._val = []
-                if type(self.second) == int :
-                    self._val.append(Int(lbl_2))
-                    self._val.append(Int(lbl_1))
-                elif type(self.second) == float :
-                    self._val.append(Real(lbl_2))
-                    self._val.append(Real(lbl_1))
-                elif type(self.second) == bool :
-                    self._val.append(Bool(lbl_2))
-                    self._val.append(Bool(lbl_1))
-                else :
-                    raise UnsupportedTypeException(self.second)
-                self._constraints = [self._val[0] == self._get_update(self._val[1])]
-        elif kind == ExprKind.binary :
-            self._val = []
-            if ctx.get_index(self.first) > 1 :
-                lbl_1 = f"{self.first}{ctx.get_index(self.first)}"
-                lbl_2 = f"{self.second}{ctx.get_index(self.second)}"
-            else :
-                lbl_1 = f"{self.first}"
-                lbl_2 = f"{self.second}"
-            self._val.append(ctx.get_var(lbl_1))
-            self._val.append(ctx.get_var(lbl_2))
-            self._constraints = [self._get_binary_expr()]
+        self._get_constraints()
 
     def __str__(self) :
         return f"<Expr: ({self.operator})>"
+    
+    def _get_constraints(self) :
+        if self.kind == ExprKind.assignment and self.operator == "=" :
+            lbls = self._get_labels()
+            self._val = self._get_vars(lbls)
+            ctx.add(self.first)
+            if type(self.second) == str :
+                ctx.add(self.second)
+                self._constraints = [self._val[0] == self._val[1]]
+            else :
+                self._constraints = [self._val[0] == self.second]
+        elif self.kind == ExprKind.binary :
+            self._val = []
+            lbls = self._get_labels()
+            self._val.append(ctx.get_var(lbls[0]))
+            self._val.append(ctx.get_var(lbls[1]))
+            self._constraints = [self._get_binary_expr()]
+        else :
+            lbl_1 = f"{self.first}{ctx.next(self.first)}"
+            ctx.add(self.first)
+            lbl_2 = f"{self.first}{ctx.next(self.first)}"
+            ctx.add(self.first)
+            self._val = self._get_vars([lbl_1,lbl_2])
+            self._constraints = [self._val[0] == self._get_update(self._val[1])]
+
+    def _get_labels(self) :
+        lbls = []
+        f_index = ctx.get_index(self.first)
+        s_index = ctx.get_index(self.second)
+        if f_index is not None :
+            if f_index > 1 :
+                lbls.append(f"{self.first}{f_index}")
+            else :
+                lbls.append(f"{self.first}")
+        if s_index is not None :
+            if s_index > 1 :
+                lbls.append(f"{self.second}{s_index}")
+            else :
+                lbls.append(f"{self.second}")
+        return lbls
+    
+    def _get_vars(self,labels) :
+        val = []
+        for lbl in labels :
+            if type(self.second) == int :
+                val.append(Int(lbl))
+            elif type(self.second) == float :
+                val.append(Real(lbl))
+            elif type(self.second) == bool :
+                val.append(Bool(lbl))
+            else :
+                raise UnsupportedTypeException(self.second)
+        return val
 
     def _get_binary_expr(self) :
         switch = {
@@ -402,6 +414,7 @@ def _parse_expr(src) :
             operator = "+="
         elif src.operator == "--" :
             operator = "-="
+        kind = ExprKind.assignment
     else :
         if src.left.name is not None and src.right.name is not None :
             first = src.left.name
@@ -502,7 +515,7 @@ except Exception as ex:
 print(source.body)
 l = parse(source.body)
 print(*l)
-
+print(type(l[0]._val))
 stop = time.time()
 print(f"Time: {stop-start}")
 print("*** END ***")
