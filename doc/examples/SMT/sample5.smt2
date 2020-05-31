@@ -4,25 +4,39 @@
 ;
 ; /* Code wants to break free */
 
-(declare-const a Bool)
-(declare-const b Bool)
+(declare-const a  (List String))
+(declare-const b  (List String))
+(declare-const c  (List String))
+(declare-const d  (List String))
+(declare-const e  (List String))
+(declare-const f  (List String))
 
-(define-fun _and ((_a Bool) (_b Bool)) Bool
-    (and _a _b)
+(define-fun do ((head String)) Bool
+    (<= (str.len head) 10)
 )
-(define-fun lazy ((_n Bool)) Bool
-    _n
+
+(define-fun-rec walk ((_l (List String))) Bool
+    (ite 
+        (not (= _l nil))
+        (and
+            (do (head _l))
+            (walk (tail _l))
+        )
+        true
+    )
 )
 
-(assert (= a true))
-(assert (= b false))
+(assert
+    (and
+        (= a nil)
+        (= b (insert "boNVAMt" a))
+        (= c (insert "IywNRY7ef" b))
+        (= d (insert "E0rosOSgT6cT1" c))
+        (= e (insert "kvvlaaU" d))
+        (= f (insert "RueGM" e))
+    )
+)
+(assert (not (walk f)))
 
-(echo "Eager evaluation")
-(push)
-(assert (not (= (_and a b) false)))
 (check-sat)
-(pop)
-
-(echo "Lazy evaluation")
-(assert (not (= (_and (lazy a) (lazy b)) false)))
-(check-sat)
+(exit)
