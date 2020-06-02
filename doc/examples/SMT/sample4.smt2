@@ -4,37 +4,43 @@
 ;
 ; /* Code wants to break free */
 
-(declare-datatypes (T U) 
-    (
-        (Stack (mk-pair (cont T) (index U)))
-    )
+(declare-const l0 (List Int))
+(declare-const l1 (List Int))
+(declare-const l2 (List Int))
+(declare-const l3 (List Int))
+(declare-const l4 (List Int))
+(declare-const l5 (List Int))
+
+
+(define-fun condition ((head Int) (next Int)) Bool
+    (>= head next)
 )
 
-(declare-const s (Stack String Int))
-(declare-const input String)
-(define-const LPAR String "(")
-(define-const RPAR String ")")
-(define-const EMPTY Int 0)
-
-(define-fun init_stack ((_s (Stack String Int))) Bool
-    (= (index _s) 0)
-)
-
-(define-fun search_err ((_s (Stack String Int))) Bool
+(define-fun-rec check ((_l (List Int))) Bool
     (ite 
-        (= (index _s) EMPTY)
-        false
+        (= _l nil)
         true
+        (ite
+            (not (= (tail _l) nil))
+            (and
+                (condition (head _l) (head (tail _l)))
+                (check (tail _l))
+            )
+            true
+        )
     )
 )
 
-(define-fun push_par ((_s (Stack String Int)) (_s1 (Stack String Int)) (_p String)) Bool
-    (ite
-        (= _p LPAR)
-        (= (index _s1) (+ (index _s0) 1))
+(assert
+    (and
+        (= l0 nil)
+        (= l1 (insert 1 l0))
+        (= l2 (insert 2 l1))
+        (= l3 (insert 3 l2))
+        (= l4 (insert 4 l3))
+        (= l5 (insert 5 l4))
     )
 )
 
-(define-fun walk ((_s (Stack String Int)))
-)
-(assert (init_stack s))
+(assert (not (check l5)))
+(check-sat)
