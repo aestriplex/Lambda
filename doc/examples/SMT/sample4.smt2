@@ -31,6 +31,7 @@
     )
 )
 
+; filling the list
 (assert
     (and
         (= l0 nil)
@@ -43,4 +44,7 @@
 )
 
 (assert (not (check l5)))
+
+; `unsat` expected
 (check-sat)
+(exit)
