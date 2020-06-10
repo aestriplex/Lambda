@@ -1,29 +1,29 @@
-from z3 import *
+from z3 import Solver, Int, And, Not, sat
 
-LPAR = '('
-RPAR = ')'
+def init(values,input_values) :
+    for v,i_s in zip(values,input_values) :
+        yield v == i_s
 
-def init_stack(st) :
-    return st.index == 0
+def tran(values) :
+    if values == [] or values[1:] == [] :
+        return True
+    if values[1:] is not None :
+        return And(values[0] <= values[1],tran(values[1:]))
 
-def search_err(st) :
-    return If(st.index == 0, True, False)
+n = int(input("number of integers: "))
 
-def push_par(st,par):
-    pass
+input_values = [int(input(f"number {i}: ")) for i in range(1,n+1)]
+values = [Int(f"s_{i}") for i in range(n)]
 
-class Stack :
-
-    def __init__(self,n) :
-        self.index = [Int(f"index{i}") for i in range(n)]
-        self.cont = String("cont")
-
-string = input("> ")
-
-stack = Stack(len(string))
 s = Solver()
-s.add(init_stack(stack))
 
-for c in string :
-    if c == LPAR or c == RPAR :
-        push_par(stack, c)
+init_condition = init(values,input_values)
+s.add(And(*init_condition))
+
+tran_condition = tran(values)
+s.add(Not(tran_condition))
+
+if s.check() == sat :
+    print(f"counterexample:\n{s.model()}")
+else :
+    print("valid")
