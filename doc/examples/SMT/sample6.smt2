@@ -4,35 +4,29 @@
 ;
 ; /* Code wants to break free */
 
+; size of the array
+(declare-const dim Int)
+
 ; arrays declaration
 (declare-const A0 (Array Int Int))
 (declare-const A1 (Array Int Int))
 (declare-const A2 (Array Int Int))
 (declare-const A3 (Array Int Int))
-(declare-const A4 (Array Int Int))
-(declare-const A5 (Array Int Int))
 
 ; indexes declaration
 (declare-const i0 Int)
 (declare-const i1 Int)
 (declare-const i2 Int)
 (declare-const i3 Int)
-(declare-const i4 Int)
-(declare-const i5 Int)
 
 (declare-const j0 Int)
 (declare-const j1 Int)
 (declare-const j2 Int)
 (declare-const j3 Int)
-(declare-const j4 Int)
-(declare-const j5 Int)
 
 (declare-const tmp0 Int)
 (declare-const tmp1 Int)
 (declare-const tmp2 Int)
-(declare-const tmp3 Int)
-(declare-const tmp4 Int)
-(declare-const tmp5 Int)
 
 ; lists declaration (for post condition)
 (declare-const l0 (List Int))
@@ -40,7 +34,6 @@
 (declare-const l2 (List Int))
 (declare-const l3 (List Int))
 (declare-const l4 (List Int))
-(declare-const l5 (List Int))
 
 (define-fun init_indexes ((_i Int) (_j Int)) Bool
     (and
@@ -49,31 +42,43 @@
     )
 )
 
-(define-fun increment ((_i0 Int) (_j0 Int) (_i1 Int) (_j1 Int)) Bool
-    (and
-        (= _j1 (+ _j0 1))
-        (= _i1 (+ _i0 1))
-    )
-)
-
 ; the body of the bubblesort algorithm
-(define-fun bsort_step ((_A0 (Array Int Int)) (_A1 (Array Int Int)) (tmp Int) (_i0 Int) (_j0 Int)) Bool
+(define-fun bsort_step 
+                        (
+                            (_A0 (Array Int Int)) 
+                            (_A1 (Array Int Int)) 
+                            (tmp Int) 
+                            (_i0 Int) 
+                            (_j0 Int) 
+                            (_i1 Int) 
+                            (_j1 Int)
+                            (_dim Int)
+                        ) Bool
     (ite
-        (< _j0 1)
-        (ite
-            (< _i0 1)
-            (ite 
-                (> (select _A0 _i0) (select _A0 (+ _i0 1)))
-                (and 
-                    (= tmp (select _A0 _i0))
-                    (= _A1 (store _A0 _i0 (select _A0 (+ _i0 1))))
-                    (= _A1 (store _A0 (+ _i0 1) tmp))
+        (< _j0 (- _dim 1))
+        (and
+            (ite
+                (< _i0 (- _dim 1))
+                (and
+                    (ite 
+                        (> (select _A0 _i0) (select _A0 (+ _i0 1)))
+                        (and 
+                            (= tmp (select _A0 _i0))
+                            (= _A1 (store _A0 _i0 (select _A0 (+ _i0 1))))
+                            (= _A1 (store _A0 (+ _i0 1) tmp))
+                        )
+                        (= _A1 _A0)
+                    )
+                    (= _i1 (+ _i0 1))
                 )
-                (= _A1 _A0)
+                (= _i1 (+ _i0 1))
             )
-            true
+            (= _j1 (+ _j0 1))
         )
-        true
+        (and
+            (= _j1 (+ _j0 1))
+            (= _A1 _A0)
+        )
     )
 )
 
@@ -93,24 +98,30 @@
     )
 )
 
-(echo "*** BUBBLESORT CHECK ***")
+; sets the size of the array
+(assert (= dim 4))
 
 ; initialization of the counters
 (assert (init_indexes i0 j0))
+
 ; the first step of the sorting algorithm
-(assert (bsort_step A0 A1 tmp0 i0 j0))
+(assert (bsort_step A0 A1 tmp0 i0 j0 i1 j1 dim))
+(assert (bsort_step A1 A2 tmp1 i1 j1 i2 j2 dim))
+(assert (bsort_step A2 A3 tmp2 i2 j2 i3 j3 dim))
 
 ; filling the list for test
 (assert
     (and
         (= l0 nil)
-        (= l1 (insert (select A1 0) l0))
-        (= l2 (insert (select A1 1) l1))
+        (= l1 (insert (select A3 0) l0))
+        (= l2 (insert (select A3 1) l1))
+        (= l3 (insert (select A3 2) l2))
+        (= l4 (insert (select A3 3) l3))
     )
 )
 
 ; post condition
-(assert (not (check l2)))
+(assert (not (check l4)))
 
 ; `unsat` expected
 (check-sat)
