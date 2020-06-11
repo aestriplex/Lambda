@@ -1,3 +1,11 @@
+""" 
+    File name:    Sample5.smt2
+
+    Copyright (c) May, 2020 - Matteo Nicoli
+
+    /* Code wants to break free */
+"""
+
 from z3 import Solver, String, StringVal, Length, And, Not, sat
 
 def init(strings, input_strings) :

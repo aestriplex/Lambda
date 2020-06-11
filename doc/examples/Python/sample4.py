@@ -1,3 +1,11 @@
+""" 
+    File name:    Sample4.smt2
+
+    Copyright (c) May, 2020 - Matteo Nicoli
+
+    /* Code wants to break free */
+"""
+
 from z3 import Solver, Int, And, Not, sat
 
 def init(values,input_values) :
@@ -27,3 +35,4 @@ if s.check() == sat :
     print(f"counterexample:\n{s.model()}")
 else :
     print("valid")
+    s.proof()
