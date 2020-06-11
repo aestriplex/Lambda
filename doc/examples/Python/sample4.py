@@ -35,4 +35,3 @@ if s.check() == sat :
     print(f"counterexample:\n{s.model()}")
 else :
     print("valid")
-    s.proof()
