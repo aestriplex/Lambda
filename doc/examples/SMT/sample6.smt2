@@ -49,11 +49,19 @@
     )
 )
 
+(define-fun increment ((_i0 Int) (_j0 Int) (_i1 Int) (_j1 Int)) Bool
+    (and
+        (= _j1 (+ _j0 1))
+        (= _i1 (+ _i0 1))
+    )
+)
+
+; the body of the bubblesort algorithm
 (define-fun bsort_step ((_A0 (Array Int Int)) (_A1 (Array Int Int)) (tmp Int) (_i0 Int) (_j0 Int)) Bool
     (ite
-        (< _j0 5)
+        (< _j0 1)
         (ite
-            (< _i0 5)
+            (< _i0 1)
             (ite 
                 (> (select _A0 _i0) (select _A0 (+ _i0 1)))
                 (and 
@@ -63,18 +71,47 @@
                 )
                 (= _A1 _A0)
             )
-            (= _A1 _A0)
+            true
         )
-        (= _A1 _A0)
+        true
     )
 )
 
-(define-fun increment ((_i0 Int) (_j0 Int) (_i1 Int) (_j1 Int)) Bool
-    (and
-        (= _j1 (+ _j0 1))
-        (= _i1 (+ _i0 1))
+; the function b which we can check if the array is ordered
+(define-fun-rec check ((_l (List Int))) Bool
+    (ite 
+        (= _l nil)
+        true
+        (ite
+            (not (= (tail _l) nil))
+            (and
+                (>= (head _l) (head (tail _l)))
+                (check (tail _l))
+            )
+            true
+        )
     )
 )
 
+(echo "*** BUBBLESORT CHECK ***")
+
+; initialization of the counters
 (assert (init_indexes i0 j0))
+; the first step of the sorting algorithm
 (assert (bsort_step A0 A1 tmp0 i0 j0))
+
+; filling the list for test
+(assert
+    (and
+        (= l0 nil)
+        (= l1 (insert (select A1 0) l0))
+        (= l2 (insert (select A1 1) l1))
+    )
+)
+
+; post condition
+(assert (not (check l2)))
+
+; `unsat` expected
+(check-sat)
+(exit)
