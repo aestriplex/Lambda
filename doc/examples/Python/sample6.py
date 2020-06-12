@@ -57,7 +57,7 @@ tmp = [Int(f"tmp_{x}") for x in range(dim)]
 
 s = Solver()
 
-init_condition = init(i[0],i[1])
+init_condition = init(i[0],j[0])
 s.add(init_condition)
 
 tran_condition= mk_tran_condition(A, i, j, tmp, dim)
