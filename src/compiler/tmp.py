@@ -10,27 +10,26 @@ from z3 import Int, Real, Bool
 from sys import getsizeof
 import time
 
-var = "VariableDeclaration"
-expr = "ExpressionStatement"
-call = "CallExpression"
-up_expr = "UpdateExpression"
-bin_expr = "BinaryExpression"
-ass_expr = "AssignmentExpression"
-cond_expr = "IfStatement"
-for_statement = "ForStatement"
-while_statement = "WhileStatement"
-do_while_statement = "DoWhileStatement"
-fun_declaration = "FunctionDeclaration"
-fun_expr = ["FunctionExpression","ArrowFunctionExpression"]
-declarator = ["VariableDeclarator","ObjectDeclarator"]
+class EsprimaTypes() :
 
-def aaa() :
-    pass
+    var = "VariableDeclaration"
+    expr = "ExpressionStatement"
+    call = "CallExpression"
+    up_expr = "UpdateExpression"
+    bin_expr = "BinaryExpression"
+    ass_expr = "AssignmentExpression"
+    cond_expr = "IfStatement"
+    for_statement = "ForStatement"
+    while_statement = "WhileStatement"
+    do_while_statement = "DoWhileStatement"
+    fun_declaration = "FunctionDeclaration"
+    fun_expr = ["FunctionExpression","ArrowFunctionExpression"]
+    declarator = ["VariableDeclarator","ObjectDeclarator"]
 
 class DepthTypeException(Exception) :
     
     def __init__(self,_t) :
-        self.msg = f"Depth must be an integer, not {_t.__name__}"
+        self.msg = f"Depth must be an integer, not {_t.__name__}."
     
     def __str__(self) :
         return self.msg
@@ -38,7 +37,7 @@ class DepthTypeException(Exception) :
 class BodyTypeException(Exception) :
     
     def __init__(self,_t) :
-        self.msg = f"Depth must be a list, not {_t.__name__}"
+        self.msg = f"Depth must be a list, not {_t.__name__}."
     
     def __str__(self) :
         return self.msg
@@ -46,7 +45,7 @@ class BodyTypeException(Exception) :
 class ScriptTypeException(Exception) :
     
     def __init__(self,_t) :
-        self.msg = f"Script parameter must be an esprima.nodes.Script, not {_t.__name__}"
+        self.msg = f"Script parameter must be an esprima.nodes.Script, not {_t.__name__}."
     
     def __str__(self) :
         return self.msg
@@ -54,7 +53,7 @@ class ScriptTypeException(Exception) :
 class VarTypeException(Exception) :
     
     def __init__(self,_t) :
-        self.msg = f"You must pass a string for parameter {_t.__name__} insted of {type(_t).__name__}"
+        self.msg = f"You must pass a string for parameter {_t.__name__} insted of {type(_t).__name__}."
     
     def __str__(self) :
         return self.msg
@@ -62,7 +61,7 @@ class VarTypeException(Exception) :
 class KindTypeException(Exception) :
     
     def __init__(self) :
-        self.msg = f"Kind unknown"
+        self.msg = f"Kind unknown."
     
     def __str__(self) :
         return self.msg
@@ -70,7 +69,7 @@ class KindTypeException(Exception) :
 class TypeException(Exception) :
 
     def __init__(self,_t) :
-        self.msg = f"{_t.__name__} must inherits from `Instruction`"
+        self.msg = f"{_t.__name__} must inherits from `Instruction`."
     
     def __str__(self) :
         return self.msg
@@ -78,7 +77,7 @@ class TypeException(Exception) :
 class UnsupportedOperatorException(Exception) :
 
     def __init__(self,o) :
-        self.msg = f"{o} is not supported (yet)"
+        self.msg = f"{o} is not supported."
     
     def __str__(self) :
         return self.msg
@@ -86,7 +85,7 @@ class UnsupportedOperatorException(Exception) :
 class UnsupportedTypeException(Exception) :
 
     def __init__(self,_t) :
-        self.msg = f"Type {_t} is not supported (yet)"
+        self.msg = f"Type {_t} is not supported."
     
     def __str__(self) :
         return self.msg
@@ -94,7 +93,7 @@ class UnsupportedTypeException(Exception) :
 class InnerContextMissingException(Exception) :
 
     def __init__(self) :
-        self.msg = "In order to process binary expression, you have to specify an inner context (default none)"
+        self.msg = "In order to process binary expression, you have to specify an inner context (default none)."
     
     def __str__(self) :
         return self.msg
@@ -102,7 +101,7 @@ class InnerContextMissingException(Exception) :
 class VariableMissingException(Exception) :
 
     def __init__(self,_n) :
-        self.msg = f"Variable {_n} must be delacred in the context"
+        self.msg = f"Variable {_n} must be delacred in the context."
     
     def __str__(self) :
         return self.msg
@@ -171,16 +170,20 @@ class Expression(Exe) :
         lbls = []
         f_index = ctx.get_index(self.first)
         s_index = ctx.get_index(self.second)
+
         if f_index is not None :
-            if f_index > 1 :
-                lbls.append(f"{self.first}{f_index}")
-            else :
-                lbls.append(f"{self.first}")
+            lbls.append(f"{self.first}{f_index}")
+            # if f_index > 1 :
+            #     lbls.append(f"{self.first}{f_index}")
+            # else :
+            #     lbls.append(f"{self.first}")
         if s_index is not None :
-            if s_index > 1 :
-                lbls.append(f"{self.second}{s_index}")
-            else :
-                lbls.append(f"{self.second}")
+            lbls.append(f"{self.second}{s_index}")
+            # if s_index > 1 :
+            #     lbls.append(f"{self.second}{s_index}")
+            # else :
+            #     lbls.append(f"{self.second}")
+
         return lbls
     
     def _get_vars(self,labels) :
@@ -300,8 +303,11 @@ class Variable(Exe) :
         if self._value is not None :
             self._constraints = [self._val == self._value]
 
+        
+        """
         ctx.add(self._name)
         ctx.add_var(self._val)
+        """
     
     def __str__(self) :
         return f"<VAR: {self._name}>"
@@ -326,8 +332,10 @@ class Context(Exe) :
             self._occurrencies.update({occurrence : 1})
 
     def get_index(self, name) :
-        if name in self._occurrencies :
-            return self._occurrencies[name]
+        if type(name) is str :
+            if name in self._occurrencies :
+                return self._occurrencies[name]
+            return 0
         return None
 
     def next(self,name) :
@@ -374,31 +382,29 @@ def _parse_call(src) :
     return Call(callee,params)
 
 def _get_kind(k) :
-
     if k == "var" :
         return VarKind.var
     if k == "const" :
         return VarKind.const
-    if k == bin_expr :
+    if k == EsprimaTypes.bin_expr :
         return ExprKind.binary
-    if k == up_expr :
+    if k == EsprimaTypes.up_expr :
         return ExprKind.update
-    if k == ass_expr :
+    if k == EsprimaTypes.ass_expr :
         return ExprKind.assignment
-    if k == while_statement :
+    if k == EsprimaTypes.while_statement :
         return LoopKind.while_loop
-    if k == do_while_statement :
+    if k == EsprimaTypes.do_while_statement :
         return LoopKind.do_while_loop
-    if k == for_statement :
+    if k == EsprimaTypes.for_statement :
         return LoopKind.for_loop
     else :
         raise KindTypeException()
 
 def _get_variables(declarations, kind) :
-    
     v = []
     for d in declarations :
-        if d.init.type in fun_expr :
+        if d.init.type in EsprimaTypes.fun_expr :
             d.init.id = d.id
             v.append(_parse_fun(d.init))
         else :
@@ -466,28 +472,27 @@ def _parse_loop(src) :
         return [Iteration(kind,test,body)]
     
 def is_variable(element) :
-    return element.type == var
+    return element.type == EsprimaTypes.var
 
 def is_function(element) :
-    return  element.type == fun_declaration
+    return  element.type == EsprimaTypes.fun_declaration
 
 def is_conditional(element) :
-    return element.type == cond_expr
+    return element.type == EsprimaTypes.cond_expr
 
 def is_expression(element) :
-    return element.type == expr
+    return element.type == EsprimaTypes.expr
 
 def is_loop(element) :
-    return element.type == for_statement or \
-            element.type == while_statement or \
-            element.type == do_while_statement
+    return element.type == EsprimaTypes.for_statement or \
+            element.type == EsprimaTypes.while_statement or \
+            element.type == EsprimaTypes.do_while_statement
         
 def is_call(element) :
-    return element.type == expr and \
-            element.expression.type == call
+    return element.type == EsprimaTypes.expr and \
+            element.expression.type == EsprimaTypes.call
 
 def parse(src) :
-
     body = []
     for e in src :
         if is_function(e) :
@@ -506,7 +511,7 @@ def parse(src) :
 
 start = time.time()
 ctx = Context()
-with open("/Users/teo/Desktop/notebooks/a.js","r") as f :
+with open("C:\\Users\\mnicoli\\Documents\\GitHub\\Lambda\\src\\compiler\\test.js","r") as f :
     aaa = f.read()
 try :
     source = esprima.parseScript(aaa)
@@ -516,7 +521,7 @@ except Exception as ex:
 print(source.body)
 l = parse(source.body)
 print(*l)
-print(type(l[0]._val))
+#print(type(l[0]._val))
 stop = time.time()
 print(f"Time: {stop-start}")
 print("*** END ***")
