@@ -15,6 +15,9 @@ class Exe(ABC) :
     @abstractmethod
     def _get_constraints(self) : ...
 
+class Language(Enum) :
+    Javascript = 0x00
+
 class Body() :
 
     def __init__(self, lst: list) -> None :
@@ -259,7 +262,6 @@ class Context() :
         return None
 
 class EsprimaTypes() :
-
     var = "VariableDeclaration"
     expr = "ExpressionStatement"
     call = "CallExpression"
