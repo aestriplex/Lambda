@@ -124,114 +124,7 @@ class VarType :
     literal = "Literal"
     obj = "ObjectExpression"
 
-class Exe(ABC) :
-
-    @abstractmethod
-    def to_ssa(self) :
-        pass
-
-class Expression(Exe) :
-
-    def __init__(self,kind,operator,first,second) :
-        self.kind = kind
-        self.operator = operator
-        self.first = first
-        self.second = second
-        self._get_constraints()
-
-    def __str__(self) :
-        return f"<Expr: ({self.operator})>"
-    
-    def _get_constraints(self) :
-        if self.kind == ExprKind.assignment and self.operator == "=" :
-            lbls = self._get_labels()
-            self._val = self._get_vars(lbls)
-            ctx.add(self.first)
-            if type(self.second) == str :
-                ctx.add(self.second)
-                self._constraints = [self._val[0] == self._val[1]]
-            else :
-                self._constraints = [self._val[0] == self.second]
-        elif self.kind == ExprKind.binary :
-            self._val = []
-            lbls = self._get_labels()
-            self._val.append(ctx.get_var(lbls[0]))
-            self._val.append(ctx.get_var(lbls[1]))
-            self._constraints = [self._get_binary_expr()]
-        else :
-            lbl_1 = f"{self.first}{ctx.next(self.first)}"
-            ctx.add(self.first)
-            lbl_2 = f"{self.first}{ctx.next(self.first)}"
-            ctx.add(self.first)
-            self._val = self._get_vars([lbl_1,lbl_2])
-            self._constraints = [self._val[0] == self._get_update(self._val[1])]
-
-    def _get_labels(self) :
-        lbls = []
-        f_index = ctx.get_index(self.first)
-        s_index = ctx.get_index(self.second)
-
-        if f_index is not None :
-            lbls.append(f"{self.first}{f_index}")
-            # if f_index > 1 :
-            #     lbls.append(f"{self.first}{f_index}")
-            # else :
-            #     lbls.append(f"{self.first}")
-        if s_index is not None :
-            lbls.append(f"{self.second}{s_index}")
-            # if s_index > 1 :
-            #     lbls.append(f"{self.second}{s_index}")
-            # else :
-            #     lbls.append(f"{self.second}")
-
-        return lbls
-    
-    def _get_vars(self,labels) :
-        val = []
-        for lbl in labels :
-            if type(self.second) == int :
-                val.append(Int(lbl))
-            elif type(self.second) == float :
-                val.append(Real(lbl))
-            elif type(self.second) == bool :
-                val.append(Bool(lbl))
-            else :
-                raise UnsupportedTypeException(type(self.second))
-        return val
-
-    def _get_binary_expr(self) :
-        switch = {
-            "==": self._val[0] == self._val[1],
-            "===": self._val[0] == self._val[1],
-            "!=": self._val[0] != self._val[1],
-            "!==": self._val[0] != self._val[1],
-        }
-        if self.operator not in switch :
-            raise UnsupportedOperatorException(self.operator)
-        return switch.get(self.operator)
-
-    def _get_operator(self) :
-        l = len(self.operator)
-        return self.operator[:l-1]
-    
-    def _get_update(self,var) :
-        o = self._get_operator()
-        switch = {
-            "+": lambda x: x + self.second,
-            "-": lambda x: x - self.second,
-            "*": lambda x: x * self.second,
-            "/": lambda x: x / self.second,
-            "**": lambda x: x ** self.second,
-            "%": lambda x: x % self.second,
-        }
-        if o not in switch :
-            raise UnsupportedOperatorException(self.operator)
-        return switch.get(o)(var)
-    
-    def to_ssa(self) :
-        pass
-
-class Call(Exe) :
+class Call() :
 
     def __init__(self,callee,params) :
         self._callee = callee
@@ -240,10 +133,7 @@ class Call(Exe) :
     def __str__(self) :
         return f"<CALL {self._callee}>"
 
-    def to_ssa(self) :
-        pass
-
-class Conditional(Exe) :
+class Conditional() :
 
     def __init__(self,test,if_block,else_block) :
         self.test = test
@@ -252,11 +142,8 @@ class Conditional(Exe) :
 
     def __str__(self) :
         return f"<Conditional>"
-    
-    def to_ssa(self) :
-        pass
 
-class Iteration(Exe) :
+class Iteration() :
 
     def __init__(self,kind,test,body) :
         self.kind = kind
@@ -265,11 +152,8 @@ class Iteration(Exe) :
     
     def __str__(self) :
         return f"<Loop: {self.kind}>"
-    
-    def to_ssa(self) :
-        pass
 
-class Fun(Exe) :
+class Fun() :
 
     def __init__(self,name,params,body,isasync) :
         self._name = name
@@ -279,11 +163,8 @@ class Fun(Exe) :
 
     def __str__(self) :
         return f"<FUN: {self._name}>"
-    
-    def to_ssa(self) :
-        pass
 
-class Variable(Exe) :
+class Variable() :
 
     def __init__(self,name,kind,value = None) :
         global ctx
@@ -295,27 +176,115 @@ class Variable(Exe) :
         self._kind = kind
         self._value = value
 
-        if type(self._value) == int :
-            self._val = Int(self._name)
-        elif type(self._value) == float :
-            self._val = Real(self._name)
+        # if type(self._value) == int :
+        #     self._val = Int(self._name)
+        # elif type(self._value) == float :
+        #     self._val = Real(self._name)
 
-        if self._value is not None :
-            self._constraints = [self._val == self._value]
+        # if self._value is not None :
+        #     self._constraints = [self._val == self._value]
 
-        
-        """
-        ctx.add(self._name)
-        ctx.add_var(self._val)
-        """
-    
     def __str__(self) :
         return f"<VAR: {self._name}>"
-    
-    def to_ssa(self) :
-        pass
 
-class Context(Exe) :
+class Expression() :
+
+    def __init__(self,kind,operator,first,second) :
+        self.kind = kind
+        self.operator = operator
+        self.first = first
+        self.second = second
+        #self._get_constraints()
+
+    def __str__(self) :
+        return f"<Expr: ({self.operator})>"
+    
+    # def _get_constraints(self) :
+    #     if self.kind == ExprKind.assignment and self.operator == "=" :
+    #         lbls = self._get_labels()
+    #         self._val = self._get_vars(lbls)
+    #         ctx.add(self.first)
+    #         if type(self.second) == str :
+    #             ctx.add(self.second)
+    #             self._constraints = [self._val[0] == self._val[1]]
+    #         else :
+    #             self._constraints = [self._val[0] == self.second]
+    #     elif self.kind == ExprKind.binary :
+    #         self._val = []
+    #         lbls = self._get_labels()
+    #         self._val.append(ctx.get_var(lbls[0]))
+    #         self._val.append(ctx.get_var(lbls[1]))
+    #         self._constraints = [self._get_binary_expr()]
+    #     else :
+    #         lbl_1 = f"{self.first}{ctx.next(self.first)}"
+    #         ctx.add(self.first)
+    #         lbl_2 = f"{self.first}{ctx.next(self.first)}"
+    #         ctx.add(self.first)
+    #         self._val = self._get_vars([lbl_1,lbl_2])
+    #         self._constraints = [self._val[0] == self._get_update(self._val[1])]
+
+    # def _get_labels(self) :
+    #     lbls = []
+    #     f_index = ctx.get_index(self.first)
+    #     s_index = ctx.get_index(self.second)
+
+    #     if f_index is not None :
+    #         lbls.append(f"{self.first}{f_index}")
+    #         # if f_index > 1 :
+    #         #     lbls.append(f"{self.first}{f_index}")
+    #         # else :
+    #         #     lbls.append(f"{self.first}")
+    #     if s_index is not None :
+    #         lbls.append(f"{self.second}{s_index}")
+    #         # if s_index > 1 :
+    #         #     lbls.append(f"{self.second}{s_index}")
+    #         # else :
+    #         #     lbls.append(f"{self.second}")
+    #     return lbls
+    
+    # def _get_vars(self,labels) :
+    #     val = []
+    #     for lbl in labels :
+    #         if type(self.second) == int :
+    #             val.append(Int(lbl))
+    #         elif type(self.second) == float :
+    #             val.append(Real(lbl))
+    #         elif type(self.second) == bool :
+    #             val.append(Bool(lbl))
+    #         else :
+    #             raise UnsupportedTypeException(type(self.second))
+    #     return val
+
+    # def _get_binary_expr(self) :
+    #     switch = {
+    #         "==": self._val[0] == self._val[1],
+    #         "===": self._val[0] == self._val[1],
+    #         "!=": self._val[0] != self._val[1],
+    #         "!==": self._val[0] != self._val[1],
+    #     }
+    #     if self.operator not in switch :
+    #         raise UnsupportedOperatorException(self.operator)
+    #     return switch.get(self.operator)
+
+    # def _get_operator(self) :
+    #     l = len(self.operator)
+    #     return self.operator[:l-1]
+    
+    # def _get_update(self,var) :
+    #     o = self._get_operator()
+    #     switch = {
+    #         "+": lambda x: x + self.second,
+    #         "-": lambda x: x - self.second,
+    #         "*": lambda x: x * self.second,
+    #         "/": lambda x: x / self.second,
+    #         "**": lambda x: x ** self.second,
+    #         "%": lambda x: x % self.second,
+    #     }
+    #     if o not in switch :
+    #         raise UnsupportedOperatorException(self.operator)
+    #     return switch.get(o)(var)
+
+class Context() :
     
     def __init__(self) :
         self._occurrencies = {}
@@ -354,9 +323,6 @@ class Context(Exe) :
             if str(v) == name :
                 return v
         return None
-    
-    def to_ssa(self) :
-        pass
 
 def _parse_variable(src, kind) :
     kind = _get_kind(kind)
@@ -404,11 +370,12 @@ def _get_kind(k) :
 def _get_variables(declarations, kind) :
     v = []
     for d in declarations :
-        if d.init.type in EsprimaTypes.fun_expr :
-            d.init.id = d.id
-            v.append(_parse_fun(d.init))
-        else :
-            v.append(_parse_variable(d,kind))
+        if d.init is not None :
+            if d.init.type in EsprimaTypes.fun_expr :
+                d.init.id = d.id
+                v.append(_parse_fun(d.init))
+            else :
+                v.append(_parse_variable(d,kind))
 
     return v
 
@@ -416,11 +383,12 @@ def _parse_expr(src) :
     kind = _get_kind(src.type)
     if kind == ExprKind.update :
         first = src.argument.name
-        second = 1
         if src.operator == "++" :
-            operator = "+="
+            embedded_operator = "+"
         elif src.operator == "--" :
-            operator = "-="
+            embedded_operator = "-"
+        operator = "="
+        second = Expression(ExprKind.update,embedded_operator,first,1)
         kind = ExprKind.assignment
     else :
         if src.left.name is not None and src.right.name is not None :
@@ -521,7 +489,6 @@ except Exception as ex:
 print(source.body)
 l = parse(source.body)
 print(*l)
-#print(type(l[0]._val))
 stop = time.time()
 print(f"Time: {stop-start}")
 print("*** END ***")

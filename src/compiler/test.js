@@ -1,5 +1,5 @@
 function abc(a) {
-    a = 1;
+    a &= true;
 }
 
 var f2 = (tmp) => {
