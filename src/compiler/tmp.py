@@ -14,6 +14,7 @@ class EsprimaTypes() :
 
     var = "VariableDeclaration"
     expr = "ExpressionStatement"
+    array = "ArrayExpression"
     call = "CallExpression"
     up_expr = "UpdateExpression"
     bin_expr = "BinaryExpression"
@@ -167,7 +168,6 @@ class Fun() :
 class Variable() :
 
     def __init__(self,name,kind,value = None) :
-        global ctx
 
         if type(name) != str :
             raise VarTypeException(name)
