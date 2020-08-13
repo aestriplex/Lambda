@@ -10,13 +10,44 @@ from z3 import Int, Real, Bool
 from sys import getsizeof
 import time
 
-class Array : ...
+class Exe(ABC) :
 
-class Object : ...
+    @abstractmethod
+    def _get_constraints(self) : ...
 
-class BaseType : ...
+class Body() :
 
-class Call() :
+    def __init__(self, lst: list) -> None :
+        self._content = lst
+
+    def __str__(self) -> str :
+        pass
+
+    def _build_body_repr(self, body: list, s: str) -> str:
+        pass
+    
+    def remove_first(self) -> None :
+        del self._content[0]
+
+    def remove_last(self) -> None :
+        del self._content[-1]
+
+    def get_list(self) -> list :
+        return self._content
+
+class Array(Exe) :
+
+    def _get_constraints(self) : ...
+
+class Object(Exe) :
+
+    def _get_constraints(self) : ...
+
+class BaseType(Exe) :
+
+    def _get_constraints(self) : ...
+
+class Call(Exe) :
 
     def __init__(self,callee,params) :
         self._callee = callee
@@ -25,7 +56,9 @@ class Call() :
     def __str__(self) :
         return f"<CALL {self._callee}>"
 
-class Conditional() :
+    def _get_constraints(self) : ...
+
+class Conditional(Exe) :
 
     def __init__(self,test,if_block,else_block) :
         self.test = test
@@ -35,7 +68,9 @@ class Conditional() :
     def __str__(self) :
         return f"<Conditional>"
 
-class Iteration() :
+    def _get_constraints(self) : ...
+
+class Iteration(Exe) :
 
     def __init__(self,kind,test,body) :
         self.kind = kind
@@ -45,7 +80,9 @@ class Iteration() :
     def __str__(self) :
         return f"<Loop: {self.kind}>"
 
-class Fun() :
+    def _get_constraints(self) : ...
+
+class Fun(Exe) :
 
     def __init__(self,name,params,body,isasync) :
         self._name = name
@@ -56,7 +93,9 @@ class Fun() :
     def __str__(self) :
         return f"<FUN: {self._name}>"
 
-class Variable() :
+    def _get_constraints(self) : ...
+
+class Variable(Exe) :
 
     def __init__(self,name,kind,value = None) :
 
@@ -78,7 +117,9 @@ class Variable() :
     def __str__(self) :
         return f"<VAR: {self._name}>"
 
-class Expression() :
+    def _get_constraints(self) : ...
+
+class Expression(Exe) :
 
     def __init__(self,kind,operator,first,second) :
         self.kind = kind
@@ -89,6 +130,8 @@ class Expression() :
 
     def __str__(self) :
         return f"<Expr: ({self.operator})>"
+
+    def _get_constraints(self) : ...
     
     # def _get_constraints(self) :
     #     if self.kind == ExprKind.assignment and self.operator == "=" :
@@ -305,11 +348,8 @@ class Parser :
     def __init__(self, source) -> None :
         self._result = self._parse_block(source.body)
 
-    def how_many(self, obj) -> int :
-        return len(filter(lambda x: type(x) == type(obj),self._result))
-
     def result(self) -> list : 
-        return self._result
+        return Body(self._result)
 
     def _parse_block_variable(self, src, kind) :
         kind = self._get_kind(kind)
@@ -469,8 +509,7 @@ class Parser :
         return body
 
 start = time.time()
-
-with open("C:\\Users\\mnicoli\\Documents\\GitHub\\Lambda\\src\\compiler\\test.js","r") as f :
+with open(r"C:\Users\mnicoli\Documents\GitHub\Lambda\src\compiler\test.js","r") as f :
     aaa = f.read()
 try :
     source = esprima.parseScript(aaa)
@@ -481,7 +520,6 @@ except Exception as ex:
 print(source.body)
 parser = Parser(source)
 l = parser.result()
-
 print(*l)
 stop = time.time()
 print(f"Time: {stop-start}")
