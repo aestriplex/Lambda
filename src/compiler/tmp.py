@@ -14,7 +14,6 @@ class EsprimaTypes() :
 
     var = "VariableDeclaration"
     expr = "ExpressionStatement"
-    array = "ArrayExpression"
     call = "CallExpression"
     up_expr = "UpdateExpression"
     bin_expr = "BinaryExpression"
@@ -30,82 +29,52 @@ class EsprimaTypes() :
 class DepthTypeException(Exception) :
     
     def __init__(self,_t) :
-        self.msg = f"Depth must be an integer, not {_t.__name__}."
-    
-    def __str__(self) :
-        return self.msg
+        super().__init__(f"Depth must be an integer, not {_t.__name__}.")
 
 class BodyTypeException(Exception) :
     
     def __init__(self,_t) :
-        self.msg = f"Depth must be a list, not {_t.__name__}."
-    
-    def __str__(self) :
-        return self.msg
+        super().__init__(f"Depth must be a list, not {_t.__name__}.")
 
 class ScriptTypeException(Exception) :
     
     def __init__(self,_t) :
-        self.msg = f"Script parameter must be an esprima.nodes.Script, not {_t.__name__}."
-    
-    def __str__(self) :
-        return self.msg
+        super().__init__(f"Script parameter must be an esprima.nodes.Script, not {_t.__name__}.")
 
 class VarTypeException(Exception) :
     
     def __init__(self,_t) :
-        self.msg = f"You must pass a string for parameter {_t.__name__} insted of {type(_t).__name__}."
-    
-    def __str__(self) :
-        return self.msg
+        super().__init__(f"You must pass a string for parameter {_t.__name__} insted of {type(_t).__name__}.")
 
 class KindTypeException(Exception) :
     
     def __init__(self) :
-        self.msg = f"Kind unknown."
-    
-    def __str__(self) :
-        return self.msg
+        super().__init__(f"Kind unknown.")
 
 class TypeException(Exception) :
 
     def __init__(self,_t) :
-        self.msg = f"{_t.__name__} must inherits from `Instruction`."
-    
-    def __str__(self) :
-        return self.msg
+        super().__init__(f"{_t.__name__} must inherits from `Instruction`.")
 
 class UnsupportedOperatorException(Exception) :
 
     def __init__(self,o) :
-        self.msg = f"{o} is not supported."
-    
-    def __str__(self) :
-        return self.msg
+        super().__init__(f"{o} is not supported.")
     
 class UnsupportedTypeException(Exception) :
 
     def __init__(self,_t) :
-        self.msg = f"Type {_t} is not supported."
-    
-    def __str__(self) :
-        return self.msg
+        super().__init__(f"Type {_t} is not supported.")
 
 class InnerContextMissingException(Exception) :
 
     def __init__(self) :
-        self.msg = "In order to process binary expression, you have to specify an inner context (default none)."
-    
-    def __str__(self) :
-        return self.msg
+        super().__init__("In order to process binary expression, you have to specify an inner context (default none).")
 
 class VariableMissingException(Exception) :
 
     def __init__(self,_n) :
-        self.msg = f"Variable {_n} must be delacred in the context."
-    
-    def __str__(self) :
-        return self.msg
+        super().__init__(f"Variable {_n} must be delacred in the context.")
     
 class VarKind(Enum) :
     var = 0
@@ -124,6 +93,7 @@ class ExprKind(Enum) :
 class VarType :
     literal = "Literal"
     obj = "ObjectExpression"
+    array = "ArrayExpression"
 
 class Call() :
 
@@ -335,12 +305,17 @@ def _get_var_value(src) :
         return src.init.value
     if src.init.type == VarType.obj :
         return _parse_object(src.init.properties)
+    if src.init.type == VarType.array :
+        return _parse_array(src.init.elements)
 
 def _parse_object(prop) :
     obj = {}
     for p in prop :
         obj.update({p.key.value : p.value.value})
     return obj
+
+def _parse_array(elements) :
+    return [e.value for e in elements]
 
 def _parse_call(src) :
     callee = src.callee.name

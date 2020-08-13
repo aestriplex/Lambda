@@ -3,6 +3,6 @@ function abc(a) {
 }
 
 var f2 = (tmp) => {
-    var a = [1,2,3];
+    var a = [1,"f",3];
     tmp = 3;
 }
