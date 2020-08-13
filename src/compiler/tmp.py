@@ -10,90 +10,11 @@ from z3 import Int, Real, Bool
 from sys import getsizeof
 import time
 
-class EsprimaTypes() :
+class Array : ...
 
-    var = "VariableDeclaration"
-    expr = "ExpressionStatement"
-    call = "CallExpression"
-    up_expr = "UpdateExpression"
-    bin_expr = "BinaryExpression"
-    ass_expr = "AssignmentExpression"
-    cond_expr = "IfStatement"
-    for_statement = "ForStatement"
-    while_statement = "WhileStatement"
-    do_while_statement = "DoWhileStatement"
-    fun_declaration = "FunctionDeclaration"
-    fun_expr = ["FunctionExpression","ArrowFunctionExpression"]
-    declarator = ["VariableDeclarator","ObjectDeclarator"]
+class Object : ...
 
-class DepthTypeException(Exception) :
-    
-    def __init__(self,_t) :
-        super().__init__(f"Depth must be an integer, not {_t.__name__}.")
-
-class BodyTypeException(Exception) :
-    
-    def __init__(self,_t) :
-        super().__init__(f"Depth must be a list, not {_t.__name__}.")
-
-class ScriptTypeException(Exception) :
-    
-    def __init__(self,_t) :
-        super().__init__(f"Script parameter must be an esprima.nodes.Script, not {_t.__name__}.")
-
-class VarTypeException(Exception) :
-    
-    def __init__(self,_t) :
-        super().__init__(f"You must pass a string for parameter {_t.__name__} insted of {type(_t).__name__}.")
-
-class KindTypeException(Exception) :
-    
-    def __init__(self) :
-        super().__init__(f"Kind unknown.")
-
-class TypeException(Exception) :
-
-    def __init__(self,_t) :
-        super().__init__(f"{_t.__name__} must inherits from `Instruction`.")
-
-class UnsupportedOperatorException(Exception) :
-
-    def __init__(self,o) :
-        super().__init__(f"{o} is not supported.")
-    
-class UnsupportedTypeException(Exception) :
-
-    def __init__(self,_t) :
-        super().__init__(f"Type {_t} is not supported.")
-
-class InnerContextMissingException(Exception) :
-
-    def __init__(self) :
-        super().__init__("In order to process binary expression, you have to specify an inner context (default none).")
-
-class VariableMissingException(Exception) :
-
-    def __init__(self,_n) :
-        super().__init__(f"Variable {_n} must be delacred in the context.")
-    
-class VarKind(Enum) :
-    var = 0
-    const = 1
-
-class LoopKind(Enum) :
-    for_loop = 0
-    while_loop = 1
-    do_while_loop = 2
-
-class ExprKind(Enum) :
-    binary = 0
-    assignment = 1
-    update = 2
-    
-class VarType :
-    literal = "Literal"
-    obj = "ObjectExpression"
-    array = "ArrayExpression"
+class BaseType : ...
 
 class Call() :
 
@@ -294,166 +215,261 @@ class Context() :
                 return v
         return None
 
-def _parse_variable(src, kind) :
-    kind = _get_kind(kind)
-    name = src.id.name
-    value = _get_var_value(src)
-    return Variable(name,kind,value)    
+class EsprimaTypes() :
 
-def _get_var_value(src) :
-    if src.init.type == VarType.literal :
-        return src.init.value
-    if src.init.type == VarType.obj :
-        return _parse_object(src.init.properties)
-    if src.init.type == VarType.array :
-        return _parse_array(src.init.elements)
+    var = "VariableDeclaration"
+    expr = "ExpressionStatement"
+    call = "CallExpression"
+    up_expr = "UpdateExpression"
+    bin_expr = "BinaryExpression"
+    ass_expr = "AssignmentExpression"
+    cond_expr = "IfStatement"
+    for_statement = "ForStatement"
+    while_statement = "WhileStatement"
+    do_while_statement = "DoWhileStatement"
+    fun_declaration = "FunctionDeclaration"
+    fun_expr = ["FunctionExpression","ArrowFunctionExpression"]
+    declarator = ["VariableDeclarator","ObjectDeclarator"]
 
-def _parse_object(prop) :
-    obj = {}
-    for p in prop :
-        obj.update({p.key.value : p.value.value})
-    return obj
+class DepthTypeException(Exception) :
+    
+    def __init__(self,_t) :
+        super().__init__(f"Depth must be an integer, not {_t.__name__}.")
 
-def _parse_array(elements) :
-    return [e.value for e in elements]
+class BodyTypeException(Exception) :
+    
+    def __init__(self,_t) :
+        super().__init__(f"Depth must be a list, not {_t.__name__}.")
 
-def _parse_call(src) :
-    callee = src.callee.name
-    params = [a.value for a in src.arguments]
-    return Call(callee,params)
+class ScriptTypeException(Exception) :
+    
+    def __init__(self,_t) :
+        super().__init__(f"Script parameter must be an esprima.nodes.Script, not {_t.__name__}.")
 
-def _get_kind(k) :
-    if k == "var" :
-        return VarKind.var
-    if k == "const" :
-        return VarKind.const
-    if k == EsprimaTypes.bin_expr :
-        return ExprKind.binary
-    if k == EsprimaTypes.up_expr :
-        return ExprKind.update
-    if k == EsprimaTypes.ass_expr :
-        return ExprKind.assignment
-    if k == EsprimaTypes.while_statement :
-        return LoopKind.while_loop
-    if k == EsprimaTypes.do_while_statement :
-        return LoopKind.do_while_loop
-    if k == EsprimaTypes.for_statement :
-        return LoopKind.for_loop
-    else :
-        raise KindTypeException()
+class VarTypeException(Exception) :
+    
+    def __init__(self,_t) :
+        super().__init__(f"You must pass a string for parameter {_t.__name__} insted of {type(_t).__name__}.")
 
-def _get_variables(declarations, kind) :
-    v = []
-    for d in declarations :
-        if d.init is not None :
-            if d.init.type in EsprimaTypes.fun_expr :
-                d.init.id = d.id
-                v.append(_parse_fun(d.init))
-            else :
-                v.append(_parse_variable(d,kind))
+class KindTypeException(Exception) :
+    
+    def __init__(self) :
+        super().__init__(f"Kind unknown.")
 
-    return v
+class TypeException(Exception) :
 
-def _parse_expr(src) :
-    kind = _get_kind(src.type)
-    if kind == ExprKind.update :
-        first = src.argument.name
-        if src.operator == "++" :
-            embedded_operator = "+"
-        elif src.operator == "--" :
-            embedded_operator = "-"
-        operator = "="
-        second = Expression(ExprKind.update,embedded_operator,first,1)
-        kind = ExprKind.assignment
-    else :
-        if src.left.name is not None and src.right.name is not None :
-            first = src.left.name
-            second = src.right.name
-        elif src.left.name is not None and src.right.name is None :
-            first = src.left.name
-            second = src.right.value
-        elif src.left.name is None and src.right.name is not None :
-            first = src.right.name
-            second = src.left.value
+    def __init__(self,_t) :
+        super().__init__(f"{_t.__name__} must inherits from `Instruction`.")
+
+class UnsupportedOperatorException(Exception) :
+
+    def __init__(self,o) :
+        super().__init__(f"{o} is not supported.")
+    
+class UnsupportedTypeException(Exception) :
+
+    def __init__(self,_t) :
+        super().__init__(f"Type {_t} is not supported.")
+
+class InnerContextMissingException(Exception) :
+
+    def __init__(self) :
+        super().__init__("In order to process binary expression, you have to specify an inner context (default none).")
+
+class VariableMissingException(Exception) :
+
+    def __init__(self,_n) :
+        super().__init__(f"Variable {_n} must be delacred in the context.")
+    
+class VarKind(Enum) :
+    var = 0
+    const = 1
+
+class LoopKind(Enum) :
+    for_loop = 0
+    while_loop = 1
+    do_while_loop = 2
+
+class ExprKind(Enum) :
+    binary = 0
+    assignment = 1
+    update = 2
+    
+class VarType :
+    literal = "Literal"
+    obj = "ObjectExpression"
+    array = "ArrayExpression"
+
+class Parser :
+
+    def __init__(self, source) -> None :
+        self._result = self._parse_block(source.body)
+
+    def how_many(self, obj) -> int :
+        return len(filter(lambda x: type(x) == type(obj),self._result))
+
+    def result(self) -> list : 
+        return self._result
+
+    def _parse_block_variable(self, src, kind) :
+        kind = self._get_kind(kind)
+        name = src.id.name
+        value = self._get_var_value(src)
+        return Variable(name,kind,value)    
+
+    def _get_var_value(self, src) :
+        if src.init.type == VarType.literal :
+            return src.init.value
+        if src.init.type == VarType.obj :
+            return self._parse_block_object(src.init.properties)
+        if src.init.type == VarType.array :
+            return self._parse_block_array(src.init.elements)
+
+    def _parse_block_object(self, prop) :
+        obj = {}
+        for p in prop :
+            obj.update({p.key.value : p.value.value})
+        return obj
+
+    def _parse_block_array(self, elements) :
+        return [e.value for e in elements]
+
+    def _parse_block_call(self, src) :
+        callee = src.callee.name
+        params = [a.value for a in src.arguments]
+        return Call(callee,params)
+
+    def _get_kind(self, k) :
+        if k == "var" :
+            return VarKind.var
+        if k == "const" :
+            return VarKind.const
+        if k == EsprimaTypes.bin_expr :
+            return ExprKind.binary
+        if k == EsprimaTypes.up_expr :
+            return ExprKind.update
+        if k == EsprimaTypes.ass_expr :
+            return ExprKind.assignment
+        if k == EsprimaTypes.while_statement :
+            return LoopKind.while_loop
+        if k == EsprimaTypes.do_while_statement :
+            return LoopKind.do_while_loop
+        if k == EsprimaTypes.for_statement :
+            return LoopKind.for_loop
         else :
-            first = src.right.value
-            second = src.left.value
-        operator = src.operator
-    
-    return Expression(kind,operator,first,second)
+            raise KindTypeException()
 
-def _parse_fun(src) :
-    name = src.id.name
-    params = [Variable(p.name,"var") for p in src.params]
-    body = parse(src.body.body)
-    return Fun(name,params,body,src.isAsync)
+    def _get_variables(self, declarations, kind) :
+        v = []
+        for d in declarations :
+            if d.init is not None :
+                if d.init.type in EsprimaTypes.fun_expr :
+                    d.init.id = d.id
+                    v.append(self._parse_block_fun(d.init))
+                else :
+                    v.append(self._parse_block_variable(d,kind))
+        return v
 
-def _parse_conditional(src) :
-    condition = _parse_expr(src.test)
-    if_block = parse(src.consequent.body)
-    else_block = parse(src.alternate.body)
-
-    return Conditional(condition,if_block,else_block)
-
-def for_to_while(src) :
-    increment = _parse_expr(src.update)
-    body = parse(src.body.body)
-    test = _parse_expr(src.test)
-    body.append(increment)
-    loop = Iteration(LoopKind.while_loop,test,body)
-    init =  _get_variables(src.init.declarations,src.kind)
-    init.append(loop)
-    return init
-
-def _parse_loop(src) :
-    kind = _get_kind(src.type)
-    if kind == LoopKind.for_loop :
-        return for_to_while(src)
-    else :
-        test = _parse_expr(src.test)
-        body = parse(src.body.body)
-        return [Iteration(kind,test,body)]
-    
-def is_variable(element) :
-    return element.type == EsprimaTypes.var
-
-def is_function(element) :
-    return  element.type == EsprimaTypes.fun_declaration
-
-def is_conditional(element) :
-    return element.type == EsprimaTypes.cond_expr
-
-def is_expression(element) :
-    return element.type == EsprimaTypes.expr
-
-def is_loop(element) :
-    return element.type == EsprimaTypes.for_statement or \
-            element.type == EsprimaTypes.while_statement or \
-            element.type == EsprimaTypes.do_while_statement
+    def _parse_block_expr(self, src) :
+        kind = self._get_kind(src.type)
+        if kind == ExprKind.update :
+            first = src.argument.name
+            if src.operator == "++" :
+                embedded_operator = "+"
+            elif src.operator == "--" :
+                embedded_operator = "-"
+            operator = "="
+            second = Expression(ExprKind.update,embedded_operator,first,1)
+            kind = ExprKind.assignment
+        else :
+            if src.left.name is not None and src.right.name is not None :
+                first = src.left.name
+                second = src.right.name
+            elif src.left.name is not None and src.right.name is None :
+                first = src.left.name
+                second = src.right.value
+            elif src.left.name is None and src.right.name is not None :
+                first = src.right.name
+                second = src.left.value
+            else :
+                first = src.right.value
+                second = src.left.value
+            operator = src.operator
         
-def is_call(element) :
-    return element.type == EsprimaTypes.expr and \
-            element.expression.type == EsprimaTypes.call
+        return Expression(kind,operator,first,second)
 
-def parse(src) :
-    body = []
-    for e in src :
-        if is_function(e) :
-            body.append(_parse_fun(e))
-        elif is_variable(e) :
-            body += _get_variables(e.declarations,e.kind)
-        elif is_conditional(e) :
-            body.append(_parse_conditional(e))
-        elif is_call(e) :
-            body.append(_parse_call(e.expression))
-        elif is_expression(e) :
-            body.append(_parse_expr(e.expression))
-        elif is_loop(e) :
-            body += _parse_loop(e)
-    return body
+    def _parse_block_fun(self, src) :
+        name = src.id.name
+        params = [Variable(p.name,"var") for p in src.params]
+        body = self._parse_block(src.body.body)
+        return Fun(name,params,body,src.isAsync)
+
+    def _parse_block_conditional(self, src) :
+        condition = self._parse_block_expr(src.test)
+        if_block = self._parse_block(src.consequent.body)
+        else_block = self._parse_block(src.alternate.body)
+
+        return Conditional(condition,if_block,else_block)
+
+    def _for_to_while(self, src) :
+        increment = self._parse_block_expr(src.update)
+        body = self._parse_block(src.body.body)
+        test = self._parse_block_expr(src.test)
+        body.append(increment)
+        loop = Iteration(LoopKind.while_loop,test,body)
+        init =  self._get_variables(src.init.declarations,src.kind)
+        init.append(loop)
+        return init
+
+    def _parse_block_loop(self, src) :
+        kind = self._get_kind(src.type)
+        if kind == LoopKind.for_loop :
+            return self._for_to_while(src)
+        else :
+            test = self._parse_block_expr(src.test)
+            body = self._parse_block(src.body.body)
+            return [Iteration(kind,test,body)]
+        
+    def _is_variable(self, element) :
+        return element.type == EsprimaTypes.var
+
+    def _is_function(self, element) :
+        return  element.type == EsprimaTypes.fun_declaration
+
+    def _is_conditional(self, element) :
+        return element.type == EsprimaTypes.cond_expr
+
+    def _is_expression(self, element) :
+        return element.type == EsprimaTypes.expr
+
+    def _is_loop(self, element) :
+        return element.type == EsprimaTypes.for_statement or \
+                element.type == EsprimaTypes.while_statement or \
+                element.type == EsprimaTypes.do_while_statement
+            
+    def _is_call(self, element) :
+        return element.type == EsprimaTypes.expr and \
+                element.expression.type == EsprimaTypes.call
+
+    def _parse_block(self, src) :
+        body = []
+        for e in src :
+            if self._is_function(e) :
+                body.append(self._parse_block_fun(e))
+            elif self._is_variable(e) :
+                body += self._get_variables(e.declarations,e.kind)
+            elif self._is_conditional(e) :
+                body.append(self._parse_block_conditional(e))
+            elif self._is_call(e) :
+                body.append(self._parse_block_call(e.expression))
+            elif self._is_expression(e) :
+                body.append(self._parse_block_expr(e.expression))
+            elif self._is_loop(e) :
+                body += self._parse_block_loop(e)
+        return body
 
 start = time.time()
-ctx = Context()
+
 with open("C:\\Users\\mnicoli\\Documents\\GitHub\\Lambda\\src\\compiler\\test.js","r") as f :
     aaa = f.read()
 try :
@@ -461,8 +477,11 @@ try :
 except Exception as ex:
     print(f"ERROR: {ex}")
     exit()
+
 print(source.body)
-l = parse(source.body)
+parser = Parser(source)
+l = parser.result()
+
 print(*l)
 stop = time.time()
 print(f"Time: {stop-start}")
