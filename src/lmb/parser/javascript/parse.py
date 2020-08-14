@@ -1,8 +1,8 @@
 import esprima
 import time
-from .struct import Call, Expression, Conditional, Iteration, Fun, Variable, Body
+from lmb.structures import Call, Expression, Conditional, Iteration, Fun, Variable, Body
 from .types import EsprimaTypes, VarKind, ExprKind, VarType, LoopKind
-from .exceptions import KindTypeException
+from lmb.exceptions import KindTypeException
 
 class Parser :
 
