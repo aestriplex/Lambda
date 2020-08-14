@@ -1,12 +1,44 @@
 from sys import getsizeof
 from abc import ABC, abstractmethod
-from exceptions import VarTypeException
+from .exceptions import VarTypeException
 
 class Exe(ABC) :
 
     @abstractmethod
     def to_ssa(self) :
         pass
+
+class Body() :
+
+    def __init__(self, lst: list) -> None :
+        self._content = lst
+
+    def __str__(self) -> str :
+        pass
+
+    def _build_body_repr(self, body: list, s: str) -> str:
+        pass
+    
+    def remove_first(self) -> None :
+        del self._content[0]
+
+    def remove_last(self) -> None :
+        del self._content[-1]
+
+    def get_list(self) -> list :
+        return self._content
+
+class Array(Exe) :
+
+    def _get_constraints(self) : ...
+
+class Object(Exe) :
+
+    def _get_constraints(self) : ...
+
+class BaseType(Exe) :
+
+    def _get_constraints(self) : ...
 
 class Expression(Exe) :
 

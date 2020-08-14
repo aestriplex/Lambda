@@ -448,8 +448,17 @@ class Parser :
 
     def _parse_block_conditional(self, src) :
         condition = self._parse_block_expr(src.test)
-        if_block = self._parse_block(src.consequent.body)
-        else_block = self._parse_block(src.alternate.body)
+        if src.consequent.body is None :
+            if_block = self._parse_block([src.consequent])
+        else :
+            if_block = self._parse_block(src.consequent.body)
+        if src.alternate is not None :
+            if src.alternate.body is None:
+                else_block = self._parse_block([src.alternate])
+            else :
+                else_block = self._parse_block(src.alternate.body)
+        else :
+            else_block = None
 
         return Conditional(condition,if_block,else_block)
 
@@ -511,7 +520,7 @@ class Parser :
         return body
 
 start = time.time()
-with open(r"C:\Users\mnicoli\Documents\GitHub\Lambda\src\compiler\test.js","r") as f :
+with open(r"C:\Users\mnicoli\Documents\GitHub\Lambda\src\test.js","r") as f :
     aaa = f.read()
 try :
     source = esprima.parseScript(aaa)
@@ -522,7 +531,7 @@ except Exception as ex:
 print(source.body)
 parser = Parser(source)
 l = parser.result()
-print(*l)
+print(*l.get_list())
 stop = time.time()
 print(f"Time: {stop-start}")
 print("*** END ***")

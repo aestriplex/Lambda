@@ -1,5 +1,6 @@
 function abc(a) {
-    a &= true;
+    if (a>10)
+        a++;
 }
 
 var f2 = (tmp) => {
