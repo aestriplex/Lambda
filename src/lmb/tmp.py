@@ -342,6 +342,7 @@ class ExprKind(Enum) :
     
 class VarType :
     literal = "Literal"
+    identifier = "Identifier"
     obj = "ObjectExpression"
     array = "ArrayExpression"
 
@@ -370,7 +371,10 @@ class Parser :
     def _parse_block_object(self, prop) :
         obj = {}
         for p in prop :
-            obj.update({p.key.value : p.value.value})
+            if p.key.type == VarType.identifier :
+                obj.update({p.key.name : p.value.value})
+            else :
+                obj.update({p.key.value : p.value.value})
         return obj
 
     def _parse_block_array(self, elements) :

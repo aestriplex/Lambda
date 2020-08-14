@@ -1,6 +1,12 @@
 function abc(a) {
-    if (a>10)
-        a++;
+    var b = {
+        primo: 1,
+        secondo: 2
+    };
+    var c = {
+        "aaa": "dsagdd",
+        "bbb": "dfggffdg"
+    };
 }
 
 var f2 = (tmp) => {

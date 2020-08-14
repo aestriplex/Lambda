@@ -6,6 +6,7 @@ class EsprimaTypes() :
     call = "CallExpression"
     up_expr = "UpdateExpression"
     bin_expr = "BinaryExpression"
+    member = "MemberExpression"
     ass_expr = "AssignmentExpression"
     cond_expr = "IfStatement"
     for_statement = "ForStatement"
@@ -31,5 +32,6 @@ class ExprKind(Enum) :
     
 class VarType :
     literal = "Literal"
+    identifier = "Identifier"
     obj = "ObjectExpression"
     array = "ArrayExpression"

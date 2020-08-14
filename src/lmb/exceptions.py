@@ -47,3 +47,8 @@ class VariableMissingException(Exception) :
 
     def __init__(self,_n) :
         super().__init__(f"Variable {_n} must be delacred in the context.")
+
+class InvalidEntryPointException(Exception) :
+
+    def __init__(self) :
+        super().__init__("The entry point must be in the body.")

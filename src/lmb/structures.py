@@ -30,9 +30,15 @@ class Body() :
 
 class Array(Exe) :
 
+    def __init__(self) : ...
+    
     def _get_constraints(self) : ...
 
 class Object(Exe) :
+
+    def _get_constraints(self) : ...
+
+class String(Exe) :
 
     def _get_constraints(self) : ...
 
