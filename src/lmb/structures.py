@@ -1,10 +1,10 @@
 from abc import ABC, abstractmethod
 from .exceptions import VarTypeException
-from .context import Context
+from .context import Context, Label
 
 class Exe(ABC) :
 
-    _constraints = None
+    _constraints = []
 
     @abstractmethod
     def to_ssa(self, ctx: Context) :
@@ -38,9 +38,15 @@ class Array(Exe) :
 
 class Object(Exe) :
 
-    def __init__(self) : ...
+    def __init__(self, name: str, content: dict) -> None :
+        self._name = name
+        self._content = content
 
-    def to_ssa(self, ctx: Context) : ...
+    def to_ssa(self, ctx: Context) -> None :
+        for key in self._content :
+            lbl = f"{self._name}.{key}"
+            ctx.add(lbl)
+            self._constraints.append(ctx.get_label(lbl,Label.curr))
 
 class String(Exe) :
 
@@ -73,15 +79,18 @@ class Expression(Exe) :
 
 class Call(Exe) :
 
-    def __init__(self,callee,params) :
-        self._callee = callee
+    def __init__(self,callee,params) -> None :
+        self._name = callee
         self._params = params
 
-    def __str__(self) :
-        return f"<CALL {self._callee}>"
+    def __str__(self) -> str :
+        return f"<CALL {self._name}>"
 
-    def __repr__(self) :
-        return f"<CALL {self._callee} at {hex(id(self))}>"
+    def __repr__(self) -> str :
+        return f"<CALL {self._name} at {hex(id(self))}>"
+
+    def get_name(self) -> str :
+        return self._name
 
     def to_ssa(self, ctx: Context) :
         pass
@@ -122,17 +131,20 @@ class Iteration(Exe) :
 
 class Fun(Exe) :
 
-    def __init__(self,name,params,body,isasync) :
+    def __init__(self,name,params,body,isasync) -> None :
         self._name = name
         self._params = params
         self._body = body
         self._async = isasync
 
-    def __str__(self) :
+    def __str__(self) -> str :
         return f"<FUN: {self._name}>"
 
-    def __repr__(self) :
+    def __repr__(self) -> str :
         return f"<FUN: {self._name} at {hex(id(self))}>"
+    
+    def get_name(self) -> str :
+        return self._name
     
     def to_ssa(self, ctx: Context) :
         pass
@@ -146,13 +158,13 @@ class Variable(Exe) :
         self._name = name
         self._kind = kind
         self._value = value
-    
+
     def __str__(self) :
         return f"<VAR: {self._name}>"
 
     def __repr__(self) :
         return f"<VAR: {self._name} at {hex(id(self))}>"
-    
+
     def to_ssa(self, ctx: Context) :
         if self._value is not None :
             self._value.to_ssa(ctx)

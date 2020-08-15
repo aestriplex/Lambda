@@ -51,4 +51,4 @@ class VariableMissingException(Exception) :
 class InvalidEntryPointException(Exception) :
 
     def __init__(self) :
-        super().__init__("The entry point must be in the body.")
+        super().__init__("The entry point must be in the body and it must be a function or a function call.")
