@@ -1,7 +1,6 @@
 # TODO: 
 # (1) make Context done
-# (2) implement array theory
-# (3) implement async functions theory
+# (2) implement async functions theory
 
 import esprima
 from enum import Enum
