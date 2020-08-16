@@ -8,12 +8,18 @@ class Lambda :
         comp = Compiler(src, lang)
         self._body = comp.get_compiled_source()
         self._entry_point = None
-        self._eq = self._get_equation()
+        #self._eq = self._get_equation()
 
     def _get_equation(self) -> list :
-        if self._entry_point is None :
-            pass
         return []
+
+    def build(self) -> list :
+        if self._entry_point is None :
+            for e in self._body.get_list() :
+                e.to_ssa()
+            return self._get_equation()
+        else :
+            return self._get_equation()
 
     def set_entry_point(self, block_name: str = None) -> None :
         if block_name is None :

@@ -1,10 +1,16 @@
 from abc import ABC, abstractmethod
 from .exceptions import VarTypeException
 from .context import Context, Label
+from typing import Any, Generator
+from z3 import Int, Real
 
 class Exe(ABC) :
 
     _constraints = []
+
+    @abstractmethod
+    def _find_labels(self, ctx: Context) -> list :
+        pass
 
     @abstractmethod
     def to_ssa(self, ctx: Context) :
@@ -30,11 +36,27 @@ class Body() :
     def get_list(self) -> list :
         return self._content
 
-class Array(Exe) :
+class Vector(Exe) :
 
-    def __init__(self) : ...
+    def __init__(self, name: str, content: list) -> None :
+        self._name = name
+        self._content = content
+
+    def _find_labels(self, ctx: Context) -> Generator :
+        i = 0
+        for _ in self._content :
+            lbl = f"{self._name}[{i}]"
+            i += 1
+            ctx.add(lbl)
+            yield ctx.get_label(lbl,Label.curr)
     
-    def to_ssa(self, ctx: Context) : ...
+    def to_ssa(self, ctx: Context) :
+        labels = self._find_labels(ctx)
+        for lbl,val in zip(labels,self._content) :
+            if type(val) == int :
+                self._constraints.append(Int(lbl) == val)
+            elif type(val) == float :
+                self._constraints.append(Real(lbl) == val)
 
 class Object(Exe) :
 
@@ -42,21 +64,36 @@ class Object(Exe) :
         self._name = name
         self._content = content
 
-    def to_ssa(self, ctx: Context) -> None :
+    def _find_labels(self, ctx: Context) -> Generator :
         for key in self._content :
             lbl = f"{self._name}.{key}"
             ctx.add(lbl)
-            self._constraints.append(ctx.get_label(lbl,Label.curr))
+            yield ctx.get_label(lbl,Label.curr)
 
-class String(Exe) :
+    def to_ssa(self, ctx: Context) -> None :
+        labels = self._find_labels(ctx)
+        for lbl,val in zip(labels,self._content.values()) :
+            if type(val) == int :
+                self._constraints.append(Int(lbl) == val)
+            elif type(val) == float :
+                self._constraints.append(Real(lbl) == val)
+
+# class String(Exe) :
+
+#     def __init__(self, name: str, content: dict) -> None :
+#         self._name = name
+#         self._content = content
+
+#     def to_ssa(self, ctx: Context) :
+#         ctx.add(self._name)
+#         self._constraints.append(ctx.get_label(self._name,Label.curr))
+
+class ValueType(Exe) :
 
     def __init__(self) : ...
 
-    def to_ssa(self, ctx: Context) : ...
-
-class BaseType(Exe) :
-
-    def __init__(self) : ...
+    def _find_labels(self, ctx: Context) -> Generator :
+        pass
 
     def to_ssa(self, ctx: Context) : ...
 
@@ -73,6 +110,9 @@ class Expression(Exe) :
 
     def __repr__(self) :
         return f"<Expr: {self.operator} at {hex(id(self))}>"
+
+    def _find_labels(self, ctx: Context) -> Generator :
+        pass
 
     def to_ssa(self, ctx: Context) :
         pass
@@ -92,6 +132,9 @@ class Call(Exe) :
     def get_name(self) -> str :
         return self._name
 
+    def _find_labels(self, ctx: Context) -> Generator :
+        pass
+
     def to_ssa(self, ctx: Context) :
         pass
 
@@ -109,6 +152,9 @@ class Conditional(Exe) :
         if self.else_block is None :
             return f"<Conditional (IF) at {hex(id(self))}>"
         return f"<Conditional (IF/ELSE) at {hex(id(self))}>"
+
+    def _find_labels(self, ctx: Context) -> Generator :
+        pass
     
     def to_ssa(self, ctx: Context) :
         pass
@@ -125,6 +171,9 @@ class Iteration(Exe) :
 
     def __repr__(self) :
         return f"<Loop: {self.kind} at {hex(id(self))}>"
+
+    def _find_labels(self, ctx: Context) -> Generator :
+        pass
     
     def to_ssa(self, ctx: Context) :
         pass
@@ -145,6 +194,9 @@ class Fun(Exe) :
     
     def get_name(self) -> str :
         return self._name
+
+    def _find_labels(self, ctx: Context) -> Generator :
+        pass
     
     def to_ssa(self, ctx: Context) :
         pass
@@ -164,6 +216,9 @@ class Variable(Exe) :
 
     def __repr__(self) :
         return f"<VAR: {self._name} at {hex(id(self))}>"
+
+    def _find_labels(self, ctx: Context) -> Generator :
+        pass
 
     def to_ssa(self, ctx: Context) :
         if self._value is not None :
