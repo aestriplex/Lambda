@@ -1,6 +1,6 @@
 import esprima
 import time
-from lmb.structures import Call, Expression, Conditional, Iteration, Fun, Variable, Body
+from lmb.structures import Call, Expression, Conditional, Iteration, Fun, Variable, Body, Array, Object
 from .types import EsprimaTypes, VarKind, ExprKind, VarType, LoopKind
 from lmb.exceptions import KindTypeException
 
@@ -33,9 +33,11 @@ class Parser :
         if src.init.type == VarType.literal :
             return src.init.value
         if src.init.type == VarType.obj :
-            return self._parse_block_object(src.init.properties)
+            value = self._parse_block_object(src.init.properties)
+            return Object(src.id.name,value)
         if src.init.type == VarType.array :
-            return self._parse_block_array(src.init.elements)
+            value = self._parse_block_array(src.init.elements)
+            return Array(src.id.name,value)
 
     def _parse_block_object(self, prop) :
         obj = {}

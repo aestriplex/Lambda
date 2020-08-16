@@ -1,5 +1,6 @@
 from enum import Enum
 from .exceptions import VariableMissingException
+from __future__ import annotations
 
 class Label(Enum) :
     curr   = 0x00
@@ -7,9 +8,10 @@ class Label(Enum) :
 
 class Context :
 
-    def __init__(self) -> None :
+    def __init__(self, parent: Context = None) -> None :
         self._occurrencies = {}
         self._assertions = []
+        self.parent = parent
 
     def __src__(self) -> str :
         return f"<Context ({len(self._occurrencies)} vars)>"

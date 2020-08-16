@@ -7,6 +7,7 @@ function abc(a) {
         "aaa": "dsagdd",
         "bbb": "dfggffdg"
     };
+    var d = [b];
 }
 
 var f2 = (tmp) => {
