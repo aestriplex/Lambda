@@ -1,6 +1,6 @@
+from __future__ import annotations
 from enum import Enum
 from .exceptions import VariableMissingException
-from __future__ import annotations
 
 class Label(Enum) :
     curr   = 0x00

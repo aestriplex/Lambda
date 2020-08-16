@@ -1,5 +1,6 @@
 import esprima
 import time
+from typing import Generator
 from lmb.structures import Call, Expression, Conditional, Iteration, Fun, Variable, Body, Array, Object
 from .types import EsprimaTypes, VarKind, ExprKind, VarType, LoopKind
 from lmb.exceptions import KindTypeException
@@ -39,17 +40,27 @@ class Parser :
             value = self._parse_block_array(src.init.elements)
             return Array(src.id.name,value)
 
-    def _parse_block_object(self, prop) :
+    def _parse_block_object(self, prop) -> dict :
         obj = {}
         for p in prop :
             if p.key.type == VarType.identifier :
-                obj.update({p.key.name : p.value.value})
+                if p.value.type == VarType.literal :
+                    obj.update({p.key.name : p.value.value})
+                else :
+                    pass
             else :
-                obj.update({p.key.value : p.value.value})
+                if p.value.type == VarType.literal :
+                    obj.update({p.key.value : p.value.value})
+                else :
+                    pass
         return obj
 
-    def _parse_block_array(self, elements) :
-        return [e.value for e in elements]
+    def _parse_block_array(self, elements) -> Generator :
+        for e in elements :
+            if e.type == VarType.literal :
+                yield e.value
+            else :
+                pass
 
     def _parse_block_call(self, src) :
         callee = src.callee.name
