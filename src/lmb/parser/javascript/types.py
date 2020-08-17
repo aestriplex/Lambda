@@ -35,3 +35,4 @@ class VarType :
     identifier = "Identifier"
     obj = "ObjectExpression"
     array = "ArrayExpression"
+    new = "NewExpression"

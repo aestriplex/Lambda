@@ -7,7 +7,7 @@ function abc(a) {
         "aaa": "dsagdd",
         "bbb": "dfggffdg"
     };
-    var d = [b];
+    var d = new Date();
 }
 
 var f2 = (tmp) => {
