@@ -92,7 +92,7 @@ class Object(Exe) :
 #         ctx.add(self._name)
 #         self._constraints.append(ctx.get_label(self._name,Label.curr))
 
-class ValueType(Exe) :
+class Value(Exe) :
 
     def __init__(self) : ...
 

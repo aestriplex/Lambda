@@ -43,24 +43,37 @@ class Parser :
     def _parse_block_object(self, prop) -> dict :
         obj = {}
         for p in prop :
-            if p.key.type == VarType.identifier :
-                if p.value.type == VarType.literal :
+            key_type, value_type = p.key.type, p.value.type
+            if key_type == VarType.identifier :
+                if value_type == VarType.literal :
                     obj.update({p.key.name : p.value.value})
-                else :
-                    pass
-            else :
-                if p.value.type == VarType.literal :
+                elif value_type == VarType.array :
+                    val = self._parse_block_array(p.value.elements)
+                    obj.update({p.key.name : Array(None,val)})
+                elif value_type == VarType.obj :
+                    val = self._parse_block_object(p.value.properties)
+                    obj.update({p.key.name : Object(None,val)})
+            elif key_type == VarType.literal :
+                if value_type == VarType.literal :
                     obj.update({p.key.value : p.value.value})
-                else :
-                    pass
+                elif value_type == VarType.array :
+                    val = self._parse_block_array(p.value.elements)
+                    obj.update({p.key.value : Array(None,val)})
+                elif value_type == VarType.obj :
+                    val = self._parse_block_object(p.value.properties)
+                    obj.update({p.key.value : Object(None,val)})
         return obj
 
     def _parse_block_array(self, elements) -> Generator :
         for e in elements :
             if e.type == VarType.literal :
                 yield e.value
-            else :
-                pass
+            elif e.type == VarType.array :
+                val = self._parse_block_array(e.elements)
+                yield Array(None, val)
+            elif e.type == VarType.obj :
+                val = self._parse_block_object(e.properties)
+                yield Object(None,val)
 
     def _parse_block_call(self, src) :
         callee = src.callee.name
