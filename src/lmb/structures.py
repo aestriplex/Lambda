@@ -1,3 +1,4 @@
+from __future__ import annotations
 from abc import ABC, abstractmethod
 from .exceptions import VarTypeException
 from .context import Context, Label
@@ -5,8 +6,6 @@ from typing import Any, Generator
 from z3 import Int, Real
 
 class Exe(ABC) :
-
-    _constraints = []
 
     @abstractmethod
     def _find_labels(self, ctx: Context) -> list :
@@ -24,6 +23,9 @@ class Body() :
     def __str__(self) -> str :
         pass
 
+    def __repr__(self) -> str :
+        return f"<BODY ({len(self._content)}) at {hex(id(self))}>"
+
     def _build_body_repr(self, body: list, s: str) -> str:
         pass
     
@@ -36,11 +38,12 @@ class Body() :
     def get_list(self) -> list :
         return self._content
 
-class Vector(Exe) :
+class Array(Exe) :
 
     def __init__(self, name: str, content: list) -> None :
         self._name = name
         self._content = content
+        self._constraints = []
 
     def _find_labels(self, ctx: Context) -> Generator :
         i = 0
@@ -48,7 +51,7 @@ class Vector(Exe) :
             lbl = f"{self._name}[{i}]"
             i += 1
             ctx.add(lbl)
-            yield ctx.get_label(lbl,Label.curr)
+            yield ctx.get_label(lbl,Label.prev)
     
     def to_ssa(self, ctx: Context) :
         labels = self._find_labels(ctx)
@@ -63,12 +66,13 @@ class Object(Exe) :
     def __init__(self, name: str, content: dict) -> None :
         self._name = name
         self._content = content
+        self._constraints = []
 
     def _find_labels(self, ctx: Context) -> Generator :
         for key in self._content :
             lbl = f"{self._name}.{key}"
             ctx.add(lbl)
-            yield ctx.get_label(lbl,Label.curr)
+            yield ctx.get_label(lbl,Label.prev)
 
     def to_ssa(self, ctx: Context) -> None :
         labels = self._find_labels(ctx)
@@ -88,7 +92,7 @@ class Object(Exe) :
 #         ctx.add(self._name)
 #         self._constraints.append(ctx.get_label(self._name,Label.curr))
 
-class ValueType(Exe) :
+class Value(Exe) :
 
     def __init__(self) : ...
 
@@ -104,6 +108,7 @@ class Expression(Exe) :
         self.operator = operator
         self.first = first
         self.second = second
+        self._constraints = []
 
     def __str__(self) :
         return f"<Expr: {self.operator}>"
@@ -144,6 +149,7 @@ class Conditional(Exe) :
         self.test = test
         self.if_block = if_block
         self.else_block = else_block
+        self._constraints = []
 
     def __str__(self) :
         return f"<Conditional>"
@@ -165,6 +171,7 @@ class Iteration(Exe) :
         self.kind = kind
         self.test = test
         self.body = body
+        self._constraints = []
     
     def __str__(self) :
         return f"<Loop: {self.kind}>"
@@ -199,7 +206,8 @@ class Fun(Exe) :
         pass
     
     def to_ssa(self, ctx: Context) :
-        pass
+        for e in self._body :
+            e.to_ssa(ctx)
 
 class Variable(Exe) :
 
