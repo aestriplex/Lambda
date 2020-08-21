@@ -1,3 +1,4 @@
+from typing import Any
 from .parser.compiler import Compiler, Language
 from lmb.context import Context
 from lmb.structures import Exe, Fun, Call
@@ -15,6 +16,12 @@ class Lambda :
     def _get_equation(self) -> list :
         return []
 
+    def _get_conditionals(self) -> list :
+        return []
+
+    def detect_unreachable(self) -> None : 
+        ...
+
     def build(self) -> None :
         if self._entry_point is None :
             for e in self._body.get_list() :
@@ -22,6 +29,9 @@ class Lambda :
             #return self._get_equation()
         # else :
         #     return self._get_equation()
+
+    def _is_main(self, element: Exe) -> bool :
+        return type(element) == Fun
 
     def set_entry_point(self, block_name: str = None) -> None :
         if block_name is None :
@@ -35,5 +45,4 @@ class Lambda :
         if self._entry_point is None :
             raise InvalidEntryPointException()
 
-    def _is_main(self, element: Exe) -> bool :
-        return type(element) == Fun
+    def set_post_condition(self, condition: Any, line: int) : ...

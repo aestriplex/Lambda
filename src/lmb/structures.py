@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 from .exceptions import VarTypeException
 from .context import Context, Label
 from typing import Any, Generator
-from z3 import Int, Real
+from z3 import Int, Real, String, StringVal
 
 class Exe(ABC) :
 
@@ -12,7 +12,7 @@ class Exe(ABC) :
         pass
 
     @abstractmethod
-    def to_ssa(self, ctx: Context) :
+    def to_ssa(self, ctx: Context, parent_label: str = None) :
         pass
 
 class Body() :
@@ -21,7 +21,7 @@ class Body() :
         self._content = lst
 
     def __str__(self) -> str :
-        pass
+        return f"<BODY ({len(self._content)})>"
 
     def __repr__(self) -> str :
         return f"<BODY ({len(self._content)}) at {hex(id(self))}>"
@@ -53,13 +53,10 @@ class Array(Exe) :
             ctx.add(lbl)
             yield ctx.get_label(lbl,Label.prev)
     
-    def to_ssa(self, ctx: Context) :
+    def to_ssa(self, ctx: Context, parent_label: str = None) :
         labels = self._find_labels(ctx)
         for lbl,val in zip(labels,self._content) :
-            if type(val) == int :
-                self._constraints.append(Int(lbl) == val)
-            elif type(val) == float :
-                self._constraints.append(Real(lbl) == val)
+            val.to_ssa(ctx,lbl)
 
 class Object(Exe) :
 
@@ -74,32 +71,30 @@ class Object(Exe) :
             ctx.add(lbl)
             yield ctx.get_label(lbl,Label.prev)
 
-    def to_ssa(self, ctx: Context) -> None :
+    def to_ssa(self, ctx: Context, parent_label: str = None) -> None :
         labels = self._find_labels(ctx)
         for lbl,val in zip(labels,self._content.values()) :
-            if type(val) == int :
-                self._constraints.append(Int(lbl) == val)
-            elif type(val) == float :
-                self._constraints.append(Real(lbl) == val)
-
-# class String(Exe) :
-
-#     def __init__(self, name: str, content: dict) -> None :
-#         self._name = name
-#         self._content = content
-
-#     def to_ssa(self, ctx: Context) :
-#         ctx.add(self._name)
-#         self._constraints.append(ctx.get_label(self._name,Label.curr))
+            val.to_ssa(ctx,lbl)
 
 class Value(Exe) :
 
-    def __init__(self) : ...
+    def __init__(self, name: str, val: Any)  -> None :
+        self._name = name
+        self._content = val
+        self._constraints = []  
 
     def _find_labels(self, ctx: Context) -> Generator :
-        pass
+        ctx.add(self._name)
+        yield ctx.get_label(self._name,Label.prev)
 
-    def to_ssa(self, ctx: Context) : ...
+    def to_ssa(self, ctx: Context, parent_label: str = None) :
+        if parent_label is not None :
+            if type(self._content) == int :
+                self._constraints.append(Int(parent_label) == self._content)
+            elif type(self._content) == float :
+                self._constraints.append(Real(parent_label) == self._content)
+            elif type(self._content) == str :
+                self._constraints.append(String(parent_label) == StringVal(self._content))
 
 class Expression(Exe) :
 
@@ -119,7 +114,7 @@ class Expression(Exe) :
     def _find_labels(self, ctx: Context) -> Generator :
         pass
 
-    def to_ssa(self, ctx: Context) :
+    def to_ssa(self, ctx: Context, parent_label: str = None) :
         pass
 
 class Call(Exe) :
@@ -140,7 +135,7 @@ class Call(Exe) :
     def _find_labels(self, ctx: Context) -> Generator :
         pass
 
-    def to_ssa(self, ctx: Context) :
+    def to_ssa(self, ctx: Context, parent_label: str = None) :
         pass
 
 class Conditional(Exe) :
@@ -162,7 +157,7 @@ class Conditional(Exe) :
     def _find_labels(self, ctx: Context) -> Generator :
         pass
     
-    def to_ssa(self, ctx: Context) :
+    def to_ssa(self, ctx: Context, parent_label: str = None) :
         pass
 
 class Iteration(Exe) :
@@ -182,7 +177,7 @@ class Iteration(Exe) :
     def _find_labels(self, ctx: Context) -> Generator :
         pass
     
-    def to_ssa(self, ctx: Context) :
+    def to_ssa(self, ctx: Context, parent_label: str = None) :
         pass
 
 class Fun(Exe) :
@@ -205,7 +200,7 @@ class Fun(Exe) :
     def _find_labels(self, ctx: Context) -> Generator :
         pass
     
-    def to_ssa(self, ctx: Context) :
+    def to_ssa(self, ctx: Context, parent_label: str = None) :
         for e in self._body :
             e.to_ssa(ctx)
 
@@ -228,6 +223,6 @@ class Variable(Exe) :
     def _find_labels(self, ctx: Context) -> Generator :
         pass
 
-    def to_ssa(self, ctx: Context) :
+    def to_ssa(self, ctx: Context, parent_label: str = None) :
         if self._value is not None :
             self._value.to_ssa(ctx)
