@@ -29,6 +29,10 @@ class ExprKind(Enum) :
     binary = 0
     assignment = 1
     update = 2
+
+class CallType(Enum) :
+    identifier = "Identifier"
+    member = "MemberExpression"
     
 class VarType :
     literal = "Literal"

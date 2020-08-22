@@ -5,6 +5,8 @@ from .context import Context, Label
 from typing import Any, Generator
 from z3 import Int, Real, String, StringVal
 
+_ANONYMOUS = "Anonymous"
+
 class Exe(ABC) :
 
     @abstractmethod
@@ -41,9 +43,18 @@ class Body() :
 class Array(Exe) :
 
     def __init__(self, name: str, content: list) -> None :
-        self._name = name
+        if name is None :
+            self._name = _ANONYMOUS
+        else :
+            self._name = name
         self._content = content
         self._constraints = []
+
+    def __str__(self) :
+        return f"<Array {self._name}>"
+
+    def __repr__(self) :
+        return f"<Array {self._name} at {hex(id(self))}>"
 
     def _find_labels(self, ctx: Context) -> Generator :
         i = 0
@@ -56,14 +67,25 @@ class Array(Exe) :
     def to_ssa(self, ctx: Context, parent_label: str = None) :
         labels = self._find_labels(ctx)
         for lbl,val in zip(labels,self._content) :
+            if parent_label is not None :
+                lbl = f"{parent_label}.{lbl}"
             val.to_ssa(ctx,lbl)
 
 class Object(Exe) :
 
     def __init__(self, name: str, content: dict) -> None :
-        self._name = name
+        if name is None :
+            self._name = _ANONYMOUS
+        else :
+            self._name = name
         self._content = content
         self._constraints = []
+
+    def __str__(self) :
+        return f"<Obj {self._name}>"
+
+    def __repr__(self) :
+        return f"<Obj {self._name} at ({hex(id(self))})>"
 
     def _find_labels(self, ctx: Context) -> Generator :
         for key in self._content :
@@ -74,6 +96,8 @@ class Object(Exe) :
     def to_ssa(self, ctx: Context, parent_label: str = None) -> None :
         labels = self._find_labels(ctx)
         for lbl,val in zip(labels,self._content.values()) :
+            if parent_label is not None :
+                lbl = f"{parent_label}.{lbl}"
             val.to_ssa(ctx,lbl)
 
 class Value(Exe) :
@@ -81,7 +105,13 @@ class Value(Exe) :
     def __init__(self, name: str, val: Any)  -> None :
         self._name = name
         self._content = val
-        self._constraints = []  
+        self._constraints = []
+
+    def __str__(self) :
+        return f""
+
+    def __repr__(self) :
+        return f""
 
     def _find_labels(self, ctx: Context) -> Generator :
         ctx.add(self._name)
@@ -182,11 +212,12 @@ class Iteration(Exe) :
 
 class Fun(Exe) :
 
-    def __init__(self,name,params,body,isasync) -> None :
+    def __init__(self,name: str, params: list, body: list, isasync: bool = False) -> None :
         self._name = name
         self._params = params
         self._body = body
         self._async = isasync
+        self._local_context = Context()
 
     def __str__(self) -> str :
         return f"<FUN: {self._name}>"
