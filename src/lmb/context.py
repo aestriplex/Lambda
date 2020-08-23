@@ -32,6 +32,9 @@ class Context :
         else :
             self._occurrencies[occurrence] += 1
 
+    def set_parent(self, parent: Context) -> None :
+        self.parent = parent
+
     def get_label(self, var_name: str, var_type: Label) -> str :
         """
         """

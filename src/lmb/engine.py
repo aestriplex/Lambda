@@ -19,16 +19,17 @@ class Lambda :
     def _get_conditionals(self) -> list :
         return []
 
-    def detect_unreachable(self) -> None : 
-        ...
+    def detect_unreachable(self) -> None : ...
 
+    def get_constraints(self) -> list :
+        c = []
+        for e in self._body.get_list() :
+            c += e.get_constraints()
+        return c
+        
     def build(self) -> None :
         if self._entry_point is None :
-            for e in self._body.get_list() :
-                e.to_ssa(self._ctx)
-            #return self._get_equation()
-        # else :
-        #     return self._get_equation()
+            self._body.build_body()
 
     def _is_main(self, element: Exe) -> bool :
         return type(element) == Fun
