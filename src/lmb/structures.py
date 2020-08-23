@@ -23,10 +23,12 @@ class Body() :
         self._content = lst
 
     def __str__(self) -> str :
-        return f"<BODY ({len(self._content)})>"
+        var = "var" if len(self._content) == 0 else "vars"
+        return f"<BODY ({len(self._content)} {var})>"
 
     def __repr__(self) -> str :
-        return f"<BODY ({len(self._content)}) at {hex(id(self))}>"
+        var = "var" if len(self._content) == 0 else "vars"
+        return f"<BODY ({len(self._content)} {var}) at {hex(id(self))}>"
 
     def _build_body_repr(self, body: list, s: str) -> str:
         pass
@@ -42,56 +44,58 @@ class Body() :
 
 class Array(Exe) :
 
-    def __init__(self, name: str, content: list) -> None :
-        if name is None :
-            self._name = _ANONYMOUS
-        else :
-            self._name = name
+    def __init__(self, name: str, content: list, is_embedded: bool = False) -> None :
+        self._name = _ANONYMOUS if name is None else name
         self._content = content
+        self._is_embedded = is_embedded
         self._constraints = []
 
-    def __str__(self) :
+    def __str__(self) -> str :
         return f"<Array {self._name}>"
 
-    def __repr__(self) :
+    def __repr__(self) -> str :
         return f"<Array {self._name} at {hex(id(self))}>"
 
     def _find_labels(self, ctx: Context) -> Generator :
         i = 0
         for _ in self._content :
-            lbl = f"{self._name}[{i}]"
+            if self._name == _ANONYMOUS :
+                lbl = f"[{i}]"
+            else :
+                lbl = f"{self._name}[{i}]"
             i += 1
             ctx.add(lbl)
-            yield ctx.get_label(lbl,Label.prev)
+            yield ctx.get_label(lbl,Label.prev,self._is_embedded)
     
-    def to_ssa(self, ctx: Context, parent_label: str = None) :
+    def to_ssa(self, ctx: Context, parent_label: str = None) -> None :
         labels = self._find_labels(ctx)
         for lbl,val in zip(labels,self._content) :
             if parent_label is not None :
-                lbl = f"{parent_label}.{lbl}"
+                lbl = f"{parent_label}{lbl}"
             val.to_ssa(ctx,lbl)
 
 class Object(Exe) :
 
-    def __init__(self, name: str, content: dict) -> None :
-        if name is None :
-            self._name = _ANONYMOUS
-        else :
-            self._name = name
+    def __init__(self, name: str, content: dict, is_embedded: bool = False) -> None :
+        self._name = _ANONYMOUS if name is None else name
+        self._is_embedded = is_embedded
         self._content = content
         self._constraints = []
 
-    def __str__(self) :
+    def __str__(self) -> str :
         return f"<Obj {self._name}>"
 
-    def __repr__(self) :
+    def __repr__(self) -> str :
         return f"<Obj {self._name} at ({hex(id(self))})>"
 
     def _find_labels(self, ctx: Context) -> Generator :
         for key in self._content :
-            lbl = f"{self._name}.{key}"
+            if self._name == _ANONYMOUS :
+                lbl = f".{key}"
+            else :
+                lbl = f"{self._name}.{key}"
             ctx.add(lbl)
-            yield ctx.get_label(lbl,Label.prev)
+            yield ctx.get_label(lbl,Label.prev,self._is_embedded)
 
     def to_ssa(self, ctx: Context, parent_label: str = None) -> None :
         labels = self._find_labels(ctx)
@@ -103,21 +107,21 @@ class Object(Exe) :
 class Value(Exe) :
 
     def __init__(self, name: str, val: Any)  -> None :
-        self._name = name
+        self._name = _ANONYMOUS if name is None else name
         self._content = val
         self._constraints = []
 
-    def __str__(self) :
-        return f""
+    def __str__(self) -> str :
+        return f"<Value ({type(self._content).__name__})>"
 
-    def __repr__(self) :
-        return f""
+    def __repr__(self) -> str :
+        return f"<Value ({type(self._content).__name__}) at {hex(id(self))}>"
 
     def _find_labels(self, ctx: Context) -> Generator :
         ctx.add(self._name)
         yield ctx.get_label(self._name,Label.prev)
 
-    def to_ssa(self, ctx: Context, parent_label: str = None) :
+    def to_ssa(self, ctx: Context, parent_label: str = None) -> None :
         if parent_label is not None :
             if type(self._content) == int :
                 self._constraints.append(Int(parent_label) == self._content)
@@ -135,16 +139,16 @@ class Expression(Exe) :
         self.second = second
         self._constraints = []
 
-    def __str__(self) :
-        return f"<Expr: {self.operator}>"
+    def __str__(self) -> str :
+        return f"<Expr: {self.operator} ({self.kind.name})>"
 
-    def __repr__(self) :
-        return f"<Expr: {self.operator} at {hex(id(self))}>"
+    def __repr__(self) -> str :
+        return f"<Expr: {self.operator} ({self.kind.name}) at {hex(id(self))}>"
 
     def _find_labels(self, ctx: Context) -> Generator :
         pass
 
-    def to_ssa(self, ctx: Context, parent_label: str = None) :
+    def to_ssa(self, ctx: Context, parent_label: str = None) -> None :
         pass
 
 class Call(Exe) :
@@ -198,10 +202,10 @@ class Iteration(Exe) :
         self.body = body
         self._constraints = []
     
-    def __str__(self) :
+    def __str__(self) -> str :
         return f"<Loop: {self.kind}>"
 
-    def __repr__(self) :
+    def __repr__(self) -> str :
         return f"<Loop: {self.kind} at {hex(id(self))}>"
 
     def _find_labels(self, ctx: Context) -> Generator :
