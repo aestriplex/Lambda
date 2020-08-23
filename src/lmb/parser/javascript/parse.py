@@ -44,24 +44,21 @@ class Parser :
         obj = {}
         for p in prop :
             key_type, value_type = p.key.type, p.value.type
+            
             if key_type == VarType.identifier :
-                if value_type == VarType.literal :
-                    obj.update({p.key.name : Value(None, p.value.value)})
-                elif value_type == VarType.array :
-                    val = self._parse_block_array(p.value.elements)
-                    obj.update({p.key.name : Array(p.key.name,val)})
-                elif value_type == VarType.obj :
-                    val = self._parse_block_object(p.value.properties)
-                    obj.update({p.key.name : Object(p.key.name,val)})
-            elif key_type == VarType.literal :
-                if value_type == VarType.literal :
-                    obj.update({p.key.value : Value(None, p.value.value)})
-                elif value_type == VarType.array :
-                    val = self._parse_block_array(p.value.elements)
-                    obj.update({p.key.value : Array(p.key.value,val)})
-                elif value_type == VarType.obj :
-                    val = self._parse_block_object(p.value.properties)
-                    obj.update({p.key.value : Object(p.key.value,val)})
+                key = p.key.name
+            else :
+                key = p.key.value
+
+            if value_type == VarType.literal :
+                obj.update({key : Value(None, p.value.value)})
+            elif value_type == VarType.array :
+                val = self._parse_block_array(p.value.elements)
+                obj.update({key : Array(key,val)})
+            elif value_type == VarType.obj :
+                val = self._parse_block_object(p.value.properties)
+                obj.update({key : Object(key,val)})
+            
         return obj
 
     def _parse_block_array(self, elements) -> list :

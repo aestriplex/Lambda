@@ -11,10 +11,6 @@ _ANONYMOUS = "Anonymous"
 class Exe(ABC) :
 
     @abstractmethod
-    def _find_labels(self, ctx: Context) -> list :
-        pass
-
-    @abstractmethod
     def to_ssa(self, ctx: Context, parent_label: str = None) :
         pass
 
@@ -59,8 +55,6 @@ class Array(Exe) :
     def _clean_label(self, label: str) -> str :
         return re.sub(r"\_[0-9]","",label)
 
-    def _find_labels(self, ctx: Context) : return ""
-
     def _find_label(self, ctx: Context, val: Exe, i: int, parent_label: str) -> str :
         if self._name == _ANONYMOUS :
             lbl = f"[{i}]"
@@ -95,8 +89,6 @@ class Object(Exe) :
     def _clean_label(self, label: str) -> str :
         return re.sub(r"\_[0-9]","",label)
 
-    def _find_labels(self, ctx: Context) -> Generator : return ""
-
     def _find_label(self, ctx: Context, val: Exe, key: str, parent_label: str) -> str :
         if self._name == _ANONYMOUS :
             lbl = f"{key}"
@@ -125,18 +117,21 @@ class Value(Exe) :
     def __repr__(self) -> str :
         return f"<Value ({type(self._content).__name__}) at {hex(id(self))}>"
 
-    def _find_labels(self, ctx: Context) -> Generator :
+    def _find_label(self, ctx: Context) -> str :
         ctx.add(self._name)
-        yield ctx.get_label(self._name,Label.prev)
+        return ctx.get_label(self._name,Label.prev)
 
     def to_ssa(self, ctx: Context, parent_label: str = None) -> None :
         if parent_label is not None :
-            if type(self._content) == int :
-                self._constraints.append(Int(parent_label) == self._content)
-            elif type(self._content) == float :
-                self._constraints.append(Real(parent_label) == self._content)
-            elif type(self._content) == str :
-                self._constraints.append(String(parent_label) == StringVal(self._content))
+            lbl = parent_label
+        else :
+            lbl = self._find_label(ctx)
+        if type(self._content) == int :
+            self._constraints.append(Int(lbl) == self._content)
+        elif type(self._content) == float :
+            self._constraints.append(Real(lbl) == self._content)
+        elif type(self._content) == str :
+            self._constraints.append(String(lbl) == StringVal(self._content))
 
 class Expression(Exe) :
 
@@ -152,9 +147,6 @@ class Expression(Exe) :
 
     def __repr__(self) -> str :
         return f"<Expr: {self.operator} ({self.kind.name}) at {hex(id(self))}>"
-
-    def _find_labels(self, ctx: Context) -> Generator :
-        pass
 
     def to_ssa(self, ctx: Context, parent_label: str = None) -> None :
         pass
@@ -174,9 +166,6 @@ class Call(Exe) :
     def get_name(self) -> str :
         return self._name
 
-    def _find_labels(self, ctx: Context) -> Generator :
-        pass
-
     def to_ssa(self, ctx: Context, parent_label: str = None) :
         pass
 
@@ -195,9 +184,6 @@ class Conditional(Exe) :
         if self.else_block is None :
             return f"<Conditional (IF) at {hex(id(self))}>"
         return f"<Conditional (IF/ELSE) at {hex(id(self))}>"
-
-    def _find_labels(self, ctx: Context) -> Generator :
-        pass
     
     def to_ssa(self, ctx: Context, parent_label: str = None) :
         pass
@@ -215,9 +201,6 @@ class Iteration(Exe) :
 
     def __repr__(self) -> str :
         return f"<Loop: {self.kind} at {hex(id(self))}>"
-
-    def _find_labels(self, ctx: Context) -> Generator :
-        pass
     
     def to_ssa(self, ctx: Context, parent_label: str = None) :
         pass
@@ -239,9 +222,6 @@ class Fun(Exe) :
     
     def get_name(self) -> str :
         return self._name
-
-    def _find_labels(self, ctx: Context) -> Generator :
-        pass
     
     def to_ssa(self, ctx: Context, parent_label: str = None) :
         for e in self._body :
@@ -262,9 +242,6 @@ class Variable(Exe) :
 
     def __repr__(self) :
         return f"<VAR: {self._name} at {hex(id(self))}>"
-
-    def _find_labels(self, ctx: Context) -> Generator :
-        pass
 
     def to_ssa(self, ctx: Context, parent_label: str = None) :
         if self._value is not None :
