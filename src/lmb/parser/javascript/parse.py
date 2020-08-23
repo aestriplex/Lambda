@@ -1,7 +1,7 @@
 import esprima
 import time
 from typing import Generator
-from lmb.structures import Call, Expression, Conditional, Iteration, Fun, Variable, Body, Array, Object
+from lmb.structures import Call, Expression, Conditional, Iteration, Fun, Variable, Body, Array, Object, Value
 from .types import EsprimaTypes, VarKind, ExprKind, VarType, LoopKind
 from lmb.exceptions import KindTypeException
 
@@ -28,9 +28,9 @@ class Parser :
         kind = self._get_kind(kind)
         name = src.id.name
         value = self._get_var_value(src)
-        return Variable(name,kind,value)    
+        return Variable(name,kind,value)
 
-    def _get_var_value(self, src) :
+    def _get_var_value(self, src: esprima.nodes) :
         if src.init.type == VarType.literal :
             return src.init.value
         if src.init.type == VarType.obj :
@@ -40,40 +40,39 @@ class Parser :
             value = self._parse_block_array(src.init.elements)
             return Array(src.id.name,value)
 
-    def _parse_block_object(self, prop) -> dict :
+    def _parse_block_object(self, prop: esprima.nodes) -> dict :
         obj = {}
         for p in prop :
             key_type, value_type = p.key.type, p.value.type
+            
             if key_type == VarType.identifier :
-                if value_type == VarType.literal :
-                    obj.update({p.key.name : p.value.value})
-                elif value_type == VarType.array :
-                    val = self._parse_block_array(p.value.elements)
-                    obj.update({p.key.name : Array(None,val)})
-                elif value_type == VarType.obj :
-                    val = self._parse_block_object(p.value.properties)
-                    obj.update({p.key.name : Object(None,val)})
-            elif key_type == VarType.literal :
-                if value_type == VarType.literal :
-                    obj.update({p.key.value : p.value.value})
-                elif value_type == VarType.array :
-                    val = self._parse_block_array(p.value.elements)
-                    obj.update({p.key.value : Array(None,val)})
-                elif value_type == VarType.obj :
-                    val = self._parse_block_object(p.value.properties)
-                    obj.update({p.key.value : Object(None,val)})
+                key = p.key.name
+            else :
+                key = p.key.value
+
+            if value_type == VarType.literal :
+                obj.update({key : Value(None, p.value.value)})
+            elif value_type == VarType.array :
+                val = self._parse_block_array(p.value.elements)
+                obj.update({key : Array(key,val)})
+            elif value_type == VarType.obj :
+                val = self._parse_block_object(p.value.properties)
+                obj.update({key : Object(key,val)})
+            
         return obj
 
-    def _parse_block_array(self, elements) -> Generator :
+    def _parse_block_array(self, elements) -> list :
+        ar = []
         for e in elements :
             if e.type == VarType.literal :
-                yield e.value
+                ar.append(Value(None, e.value))
             elif e.type == VarType.array :
                 val = self._parse_block_array(e.elements)
-                yield Array(None, val)
+                ar.append(Array(None, val))
             elif e.type == VarType.obj :
                 val = self._parse_block_object(e.properties)
-                yield Object(None,val)
+                ar.append(Object(None,val))
+        return ar
 
     def _parse_block_call(self, src) :
         callee = src.callee.name
