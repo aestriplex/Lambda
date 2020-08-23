@@ -40,7 +40,7 @@ class Parser :
             value = self._parse_block_array(src.init.elements)
             return Array(src.id.name,value)
 
-    def _parse_block_object(self, prop: esprima.nodes, is_embedded: bool = False) -> dict :
+    def _parse_block_object(self, prop: esprima.nodes) -> dict :
         obj = {}
         for p in prop :
             key_type, value_type = p.key.type, p.value.type
@@ -48,33 +48,33 @@ class Parser :
                 if value_type == VarType.literal :
                     obj.update({p.key.name : Value(None, p.value.value)})
                 elif value_type == VarType.array :
-                    val = self._parse_block_array(p.value.elements, is_embedded)
-                    obj.update({p.key.name : Array(p.key.name,val, is_embedded)})
+                    val = self._parse_block_array(p.value.elements)
+                    obj.update({p.key.name : Array(p.key.name,val)})
                 elif value_type == VarType.obj :
-                    val = self._parse_block_object(p.value.properties, is_embedded)
-                    obj.update({p.key.name : Object(p.key.name,val, is_embedded)})
+                    val = self._parse_block_object(p.value.properties)
+                    obj.update({p.key.name : Object(p.key.name,val)})
             elif key_type == VarType.literal :
                 if value_type == VarType.literal :
                     obj.update({p.key.value : Value(None, p.value.value)})
                 elif value_type == VarType.array :
-                    val = self._parse_block_array(p.value.elements, is_embedded)
-                    obj.update({p.key.value : Array(p.key.value,val, is_embedded)})
+                    val = self._parse_block_array(p.value.elements)
+                    obj.update({p.key.value : Array(p.key.value,val)})
                 elif value_type == VarType.obj :
-                    val = self._parse_block_object(p.value.properties, is_embedded)
-                    obj.update({p.key.value : Object(p.key.value,val,is_embedded)})
+                    val = self._parse_block_object(p.value.properties)
+                    obj.update({p.key.value : Object(p.key.value,val)})
         return obj
 
-    def _parse_block_array(self, elements, is_embedded: bool = False) -> list :
+    def _parse_block_array(self, elements) -> list :
         ar = []
         for e in elements :
             if e.type == VarType.literal :
                 ar.append(Value(None, e.value))
             elif e.type == VarType.array :
-                val = self._parse_block_array(e.elements, is_embedded)
-                ar.append(Array(None, val, is_embedded))
+                val = self._parse_block_array(e.elements)
+                ar.append(Array(None, val))
             elif e.type == VarType.obj :
-                val = self._parse_block_object(e.properties, is_embedded)
-                ar.append(Object(None,val, is_embedded))
+                val = self._parse_block_object(e.properties)
+                ar.append(Object(None,val))
         return ar
 
     def _parse_block_call(self, src) :

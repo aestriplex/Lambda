@@ -1,4 +1,5 @@
 from __future__ import annotations
+import re
 from abc import ABC, abstractmethod
 from .exceptions import VarTypeException
 from .context import Context, Label
@@ -44,10 +45,9 @@ class Body() :
 
 class Array(Exe) :
 
-    def __init__(self, name: str, content: list, is_embedded: bool = False) -> None :
+    def __init__(self, name: str, content: list) -> None :
         self._name = _ANONYMOUS if name is None else name
         self._content = content
-        self._is_embedded = is_embedded
         self._constraints = []
 
     def __str__(self) -> str :
@@ -55,6 +55,9 @@ class Array(Exe) :
 
     def __repr__(self) -> str :
         return f"<Array {self._name} at {hex(id(self))}>"
+
+    def _clean_label(self, label: str) -> str :
+        return re.sub(r"\_[0-9]","",label)
 
     def _find_labels(self, ctx: Context) -> Generator :
         i = 0
@@ -65,20 +68,21 @@ class Array(Exe) :
                 lbl = f"{self._name}[{i}]"
             i += 1
             ctx.add(lbl)
-            yield ctx.get_label(lbl,Label.prev,self._is_embedded)
+            yield ctx.get_label(lbl,Label.prev)
     
     def to_ssa(self, ctx: Context, parent_label: str = None) -> None :
         labels = self._find_labels(ctx)
         for lbl,val in zip(labels,self._content) :
             if parent_label is not None :
                 lbl = f"{parent_label}{lbl}"
+            if type(val) != Value :
+                lbl = self._clean_label(lbl)
             val.to_ssa(ctx,lbl)
 
 class Object(Exe) :
 
     def __init__(self, name: str, content: dict, is_embedded: bool = False) -> None :
         self._name = _ANONYMOUS if name is None else name
-        self._is_embedded = is_embedded
         self._content = content
         self._constraints = []
 
@@ -88,6 +92,9 @@ class Object(Exe) :
     def __repr__(self) -> str :
         return f"<Obj {self._name} at ({hex(id(self))})>"
 
+    def _clean_label(self, label: str) -> str :
+        return re.sub(r"\_[0-9]","",label)
+
     def _find_labels(self, ctx: Context) -> Generator :
         for key in self._content :
             if self._name == _ANONYMOUS :
@@ -95,13 +102,15 @@ class Object(Exe) :
             else :
                 lbl = f"{self._name}.{key}"
             ctx.add(lbl)
-            yield ctx.get_label(lbl,Label.prev,self._is_embedded)
+            yield ctx.get_label(lbl,Label.prev)
 
     def to_ssa(self, ctx: Context, parent_label: str = None) -> None :
         labels = self._find_labels(ctx)
         for lbl,val in zip(labels,self._content.values()) :
             if parent_label is not None :
                 lbl = f"{parent_label}.{lbl}"
+            if type(val) != Value :
+                lbl = self._clean_label(lbl)
             val.to_ssa(ctx,lbl)
 
 class Value(Exe) :
