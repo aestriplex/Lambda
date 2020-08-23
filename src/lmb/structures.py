@@ -59,25 +59,25 @@ class Array(Exe) :
     def _clean_label(self, label: str) -> str :
         return re.sub(r"\_[0-9]","",label)
 
-    def _find_labels(self, ctx: Context) -> Generator :
-        i = 0
-        for _ in self._content :
-            if self._name == _ANONYMOUS :
-                lbl = f"[{i}]"
-            else :
-                lbl = f"{self._name}[{i}]"
-            i += 1
-            ctx.add(lbl)
-            yield ctx.get_label(lbl,Label.prev)
+    def _find_labels(self, ctx: Context) : return ""
+
+    def _find_label(self, ctx: Context, val: Exe, i: int, parent_label: str) -> str :
+        if self._name == _ANONYMOUS :
+            lbl = f"[{i}]"
+        else :
+            lbl = f"{self._name}[{i}]"
+        if parent_label is not None :
+            lbl = f"{self._clean_label(parent_label)}{lbl}"
+        ctx.add(lbl)
+        return ctx.get_label(lbl,Label.prev)
     
     def to_ssa(self, ctx: Context, parent_label: str = None) -> None :
-        labels = self._find_labels(ctx)
-        for lbl,val in zip(labels,self._content) :
-            if parent_label is not None :
-                lbl = f"{parent_label}{lbl}"
-            if type(val) != Value :
-                lbl = self._clean_label(lbl)
+        i = 0
+        for val in self._content :
+            lbl = self._find_label(ctx, val, i, parent_label)
+            i += 1
             val.to_ssa(ctx,lbl)
+            
 
 class Object(Exe) :
 
@@ -95,22 +95,21 @@ class Object(Exe) :
     def _clean_label(self, label: str) -> str :
         return re.sub(r"\_[0-9]","",label)
 
-    def _find_labels(self, ctx: Context) -> Generator :
-        for key in self._content :
-            if self._name == _ANONYMOUS :
-                lbl = f".{key}"
-            else :
-                lbl = f"{self._name}.{key}"
-            ctx.add(lbl)
-            yield ctx.get_label(lbl,Label.prev)
+    def _find_labels(self, ctx: Context) -> Generator : return ""
+
+    def _find_label(self, ctx: Context, val: Exe, key: str, parent_label: str) -> str :
+        if self._name == _ANONYMOUS :
+            lbl = f"{key}"
+        else :
+            lbl = f"{self._name}.{key}"
+        if parent_label is not None :
+            lbl = f"{self._clean_label(parent_label)}.{lbl}"
+        ctx.add(lbl)
+        return ctx.get_label(lbl,Label.prev)
 
     def to_ssa(self, ctx: Context, parent_label: str = None) -> None :
-        labels = self._find_labels(ctx)
-        for lbl,val in zip(labels,self._content.values()) :
-            if parent_label is not None :
-                lbl = f"{parent_label}.{lbl}"
-            if type(val) != Value :
-                lbl = self._clean_label(lbl)
+        for key,val in zip(self._content.keys(),self._content.values()) :
+            lbl = self._find_label(ctx, val, key, parent_label)
             val.to_ssa(ctx,lbl)
 
 class Value(Exe) :
