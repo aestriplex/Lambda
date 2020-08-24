@@ -1,7 +1,7 @@
 from __future__ import annotations
 import re
 from abc import ABC, abstractmethod
-from .exceptions import VarTypeException
+from .exceptions import VarTypeException, UnsupportedTypeException
 from .context import Context, Label
 from typing import Any, Generator
 from z3 import Int, Real, String, StringVal
@@ -23,15 +23,27 @@ class Body() :
         self._global_context = Context()
 
     def __str__(self) -> str :
-        var = "var" if len(self._content) == 0 else "vars"
+        var = "var" if len(self._content) == 1 else "vars"
         return f"<BODY ({len(self._content)} {var})>"
 
     def __repr__(self) -> str :
-        var = "var" if len(self._content) == 0 else "vars"
+        var = "var" if len(self._content) == 1 else "vars"
         return f"<BODY ({len(self._content)} {var}) at {hex(id(self))}>"
+
+    def __iadd__(self, other: list) -> self :
+        if type(other) != list :
+            raise UnsupportedTypeException(type(other))
+        self._content += other
+        return self
 
     def _get_body_repr(self, body: list, s: str) -> str:
         pass
+
+    def add_element(self, e: Exe) -> None :
+        self._content.append(e)
+    
+    def add_list(self, l: list) -> None :
+        self._content += l
     
     def remove_first(self) -> None :
         del self._content[0]
@@ -157,17 +169,23 @@ class Value(Exe) :
 class Expression(Exe) :
 
     def __init__(self,kind,operator,first,second = None) :
-        self.kind = kind
-        self.operator = operator
-        self.first = first
-        self.second = second
+        self._kind = kind
+        self._operator = operator
+        self._first = first
+        self._second = second
         self._constraints = []
 
     def __str__(self) -> str :
-        return f"<Expr: {self.operator} ({self.kind.name})>"
+        return f"<Expr: {self._operator} ({self._kind.name})>"
 
     def __repr__(self) -> str :
-        return f"<Expr: {self.operator} ({self.kind.name}) at {hex(id(self))}>"
+        return f"<Expr: {self._operator} ({self._kind.name}) at {hex(id(self))}>"
+
+    def get_first(self) -> str :
+        return self._first
+
+    def get_second(self) -> str :
+        return self._second
 
     def get_constraints(self, ctx: Context = None) -> list : ...
 
@@ -176,7 +194,7 @@ class Expression(Exe) :
 
 class Call(Exe) :
 
-    def __init__(self, callee: str, params: list, func: Fun) -> None :
+    def __init__(self, callee: str, params: list, func: Fun = None) -> None :
         self._name = callee
         self._params = params
         self._func = func
@@ -288,6 +306,9 @@ class Variable(Exe) :
 
     def __repr__(self) :
         return f"<VAR: {self._name} at {hex(id(self))}>"
+
+    def get_name(self) -> str :
+        return self._name
 
     def get_constraints(self, ctx: Context = None) -> list :
         return self._value.get_constraints()
