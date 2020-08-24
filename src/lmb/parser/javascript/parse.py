@@ -32,7 +32,7 @@ class Parser :
 
     def _get_var_value(self, src: esprima.nodes) :
         if src.init.type == VarType.literal :
-            return src.init.value
+            return Value(src.id.name, src.init.value)
         if src.init.type == VarType.obj :
             value = self._parse_block_object(src.init.properties)
             return Object(src.id.name,value)

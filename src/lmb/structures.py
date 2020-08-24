@@ -30,10 +30,11 @@ class Body() :
         var = "var" if len(self._content) == 1 else "vars"
         return f"<BODY ({len(self._content)} {var}) at {hex(id(self))}>"
 
-    def __iadd__(self, other: list) -> None :
+    def __iadd__(self, other: list) -> self :
         if type(other) != list :
             raise UnsupportedTypeException(type(other))
         self._content += other
+        return self
 
     def _get_body_repr(self, body: list, s: str) -> str:
         pass
