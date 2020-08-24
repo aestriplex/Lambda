@@ -23,8 +23,8 @@
 // }
 
 var f2 = (tmp) => {
-    var a = [1,"f",3];
-    var k = 5;
+    var k = 3;
+    k = 5;
 }
 // console.assert(x == 2);
 // abc(4);

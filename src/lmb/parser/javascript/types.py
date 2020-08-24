@@ -25,11 +25,6 @@ class LoopKind(Enum) :
     while_loop = 1
     do_while_loop = 2
 
-class ExprKind(Enum) :
-    binary = 0
-    assignment = 1
-    update = 2
-
 class CallType(Enum) :
     identifier = "Identifier"
     member = "MemberExpression"

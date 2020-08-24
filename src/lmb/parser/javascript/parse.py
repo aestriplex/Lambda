@@ -1,8 +1,9 @@
 import esprima
 import time
-from typing import Generator
+from typing import Generator, Any
 from lmb.structures import Call, Expression, Conditional, Iteration, Fun, Variable, Body, Array, Object, Value
-from .types import EsprimaTypes, VarKind, ExprKind, VarType, LoopKind
+from .types import EsprimaTypes, VarKind, VarType, LoopKind
+from lmb.options import ExprKind
 from lmb.exceptions import KindTypeException
 
 class Parser :
@@ -109,8 +110,8 @@ class Parser :
                 else :
                     v.append(self._parse_block_variable(d,kind))
         return v
-
-    def _parse_block_expr(self, src) :
+    
+    def _parse_block_expr(self, src: esprima.nodes) -> Expression :
         kind = self._get_kind(src.type)
         if kind == ExprKind.update :
             first = src.argument.name
@@ -123,17 +124,17 @@ class Parser :
             kind = ExprKind.assignment
         else :
             if src.left.name is not None and src.right.name is not None :
-                first = src.left.name
-                second = src.right.name
+                first = Variable(src.left.name)
+                second = Variable(src.right.name)
             elif src.left.name is not None and src.right.name is None :
-                first = src.left.name
-                second = src.right.value
+                first = Variable(src.left.name)
+                second = Value(None, src.right.value)
             elif src.left.name is None and src.right.name is not None :
-                first = src.right.name
-                second = src.left.value
+                first = Variable(src.right.name)
+                second = Value(None, src.left.value)
             else :
-                first = src.right.value
-                second = src.left.value
+                first = Value(None, src.right.value)
+                second = Value(None, src.left.value)
             operator = src.operator
         
         return Expression(kind,operator,first,second)

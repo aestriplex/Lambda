@@ -52,3 +52,8 @@ class InvalidEntryPointException(Exception) :
 
     def __init__(self) :
         super().__init__("The entry point must be in the body and it must be a function or a function call.")
+    
+class ImplicitlyTypedException(Exception) :
+
+    def __init__(self, name) :
+        super().__init__(f"Variable {name} is not declared in context. An undeclared variable cannot be implicitly typed.")

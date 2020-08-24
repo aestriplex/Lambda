@@ -3,8 +3,10 @@ import re
 from abc import ABC, abstractmethod
 from .exceptions import VarTypeException, UnsupportedTypeException
 from .context import Context, Label
+from .utils import remove_ctx_index
+from .options import ExprKind
 from typing import Any, Generator
-from z3 import Int, Real, String, StringVal
+from z3 import Int, Real, String, StringVal, BoolRef
 
 _ANONYMOUS = "Anonymous"
 
@@ -71,8 +73,11 @@ class Array(Exe) :
     def __repr__(self) -> str :
         return f"<Array {self._name} at {hex(id(self))}>"
 
+    def get_name(self) -> str :
+        return self._name
+
     def _clean_label(self, label: str) -> str :
-        return re.sub(r"\_[0-9]","",label)
+        return re.sub(remove_ctx_index,"",label)
 
     def _find_label(self, ctx: Context, val: Exe, i: int, parent_label: str) -> str :
         if self._name == _ANONYMOUS :
@@ -81,7 +86,7 @@ class Array(Exe) :
             lbl = f"{self._name}[{i}]"
         if parent_label is not None :
             lbl = f"{self._clean_label(parent_label)}{lbl}"
-        ctx.add(lbl)
+        ctx.add(lbl, type(val))
         return ctx.get_label(lbl,Label.prev)
 
     def get_constraints(self, ctx: Context = None) -> list :
@@ -110,8 +115,11 @@ class Object(Exe) :
     def __repr__(self) -> str :
         return f"<Obj {self._name} at ({hex(id(self))})>"
 
+    def get_name(self) -> str :
+        return self._name
+
     def _clean_label(self, label: str) -> str :
-        return re.sub(r"\_[0-9]","",label)
+        return re.sub(remove_ctx_index,"",label)
 
     def _find_label(self, ctx: Context, val: Exe, key: str, parent_label: str) -> str :
         if self._name == _ANONYMOUS :
@@ -120,7 +128,7 @@ class Object(Exe) :
             lbl = f"{self._name}.{key}"
         if parent_label is not None :
             lbl = f"{self._clean_label(parent_label)}.{lbl}"
-        ctx.add(lbl)
+        ctx.add(lbl, type(val))
         return ctx.get_label(lbl,Label.prev)
 
     def get_constraints(self, ctx: Context = None) -> list :
@@ -136,9 +144,10 @@ class Object(Exe) :
 
 class Value(Exe) :
 
-    def __init__(self, name: str, val: Any)  -> None :
+    def __init__(self, name: str, val: Any = None)  -> None :
         self._name = _ANONYMOUS if name is None else name
         self._content = val
+        self._type = type(val)
         self._constraints = []
 
     def __str__(self) -> str :
@@ -147,8 +156,14 @@ class Value(Exe) :
     def __repr__(self) -> str :
         return f"<Value ({type(self._content).__name__}) at {hex(id(self))}>"
 
+    def get_name(self) -> str :
+        return self._name
+
+    def get_val(self) -> Any :
+        return self._content
+
     def _find_label(self, ctx: Context) -> str :
-        ctx.add(self._name)
+        ctx.add(self._name, self._type)
         return ctx.get_label(self._name,Label.prev)
 
     def get_constraints(self, ctx: Context = None) -> list :
@@ -168,7 +183,7 @@ class Value(Exe) :
 
 class Expression(Exe) :
 
-    def __init__(self,kind,operator,first,second = None) :
+    def __init__(self, kind: Any, operator: Any, first: Exe, second: Exe = None) -> None :
         self._kind = kind
         self._operator = operator
         self._first = first
@@ -176,21 +191,44 @@ class Expression(Exe) :
         self._constraints = []
 
     def __str__(self) -> str :
-        return f"<Expr: {self._operator} ({self._kind.name})>"
+        return f"<Expr {self._operator} ({self._kind.name})>"
 
     def __repr__(self) -> str :
-        return f"<Expr: {self._operator} ({self._kind.name}) at {hex(id(self))}>"
+        return f"<Expr {self._operator} ({self._kind.name}) at {hex(id(self))}>"
 
     def get_first(self) -> str :
-        return self._first
+        return self._first.get_name()
 
     def get_second(self) -> str :
-        return self._second
+        return self._second.get_name()
 
-    def get_constraints(self, ctx: Context = None) -> list : ...
+    def _make_constraint(self, ctx: Context, first: Any, second: Any) -> BoolRef :
+        t = ctx.get_type(first)
+        if t == type(second) :
+            if t == int :
+                return Int(first) == second
+            elif t == float :
+                return Real(first) == second
+            elif t == str :
+                return String(first) == StringVal(second)
+
+    def get_constraints(self, ctx: Context = None) -> list :
+        return self._constraints
 
     def to_ssa(self, ctx: Context, parent_label: str = None) -> None :
-        pass
+        if self._kind == ExprKind.binary : 
+            ...
+        elif self._kind == ExprKind.update : 
+            ...
+        elif self._kind == ExprKind.assignment :
+            ctx.add(self._first.get_name())
+            first = ctx.get_label(self._first.get_name(),Label.prev)
+            if type(self._second) == Variable :
+                second = ctx.get_label(self._second.get_name(),Label.prev)
+            else :
+                second = self._second.get_val()
+            self._constraints.append(self._make_constraint(ctx,first,second))
+            
 
 class Call(Exe) :
 
@@ -200,10 +238,10 @@ class Call(Exe) :
         self._func = func
 
     def __str__(self) -> str :
-        return f"<CALL {self._name}>"
+        return f"<Call {self._name}>"
 
     def __repr__(self) -> str :
-        return f"<CALL {self._name} at {hex(id(self))}>"
+        return f"<Call {self._name} at {hex(id(self))}>"
 
     def get_name(self) -> str :
         return self._name
@@ -218,26 +256,28 @@ class Call(Exe) :
 
 class Conditional(Exe) :
 
-    def __init__(self,test,if_block,else_block) :
+    def __init__(self, test: Exe, if_block: list, else_block: list = None) -> None :
         self.test = test
         self.if_block = if_block
         self.else_block = else_block
         self._constraints = []
 
-    def __str__(self) :
-        return f"<Conditional>"
-
-    def __repr__(self) :
+    def __str__(self) -> str :
         if self.else_block is None :
-            return f"<Conditional (IF) at {hex(id(self))}>"
-        return f"<Conditional (IF/ELSE) at {hex(id(self))}>"
+            return f"<Conditional (if)>"
+        return f"<Conditional (if/else)>"
+
+    def __repr__(self) -> str :
+        if self.else_block is None :
+            return f"<Conditional (if) at {hex(id(self))}>"
+        return f"<Conditional (if/else) at {hex(id(self))}>"
 
     def get_constraints(self, ctx: Context = None) -> list : ...
     
     def to_ssa(self, ctx: Context, parent_label: str = None) :
         pass
 
-class Iteration(Exe) :
+class Iteration(Exe):
 
     def __init__(self,kind,test,body) :
         self.kind = kind
@@ -246,10 +286,10 @@ class Iteration(Exe) :
         self._constraints = []
     
     def __str__(self) -> str :
-        return f"<Loop: {self.kind}>"
+        return f"<Loop {self.kind}>"
 
     def __repr__(self) -> str :
-        return f"<Loop: {self.kind} at {hex(id(self))}>"
+        return f"<Loop {self.kind} at {hex(id(self))}>"
 
     def get_constraints(self, ctx: Context = None) -> list : ...
     
@@ -293,7 +333,7 @@ class Fun(Exe) :
 
 class Variable(Exe) :
 
-    def __init__(self,name,kind,value = None) :
+    def __init__(self, name: str, kind: Any = None, value: Value = None) -> None :
         if type(name) != str :
             raise VarTypeException(name)
 
@@ -301,11 +341,11 @@ class Variable(Exe) :
         self._kind = kind
         self._value = value
 
-    def __str__(self) :
-        return f"<VAR: {self._name}>"
+    def __str__(self) -> str :
+        return f"<Var {self._name}>"
 
-    def __repr__(self) :
-        return f"<VAR: {self._name} at {hex(id(self))}>"
+    def __repr__(self) -> str :
+        return f"<Var {self._name} at {hex(id(self))}>"
 
     def get_name(self) -> str :
         return self._name
