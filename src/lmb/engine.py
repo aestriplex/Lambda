@@ -11,7 +11,7 @@ class Lambda :
         comp = Compiler(src, lang)
         self._body = comp.get_compiled_source()
         self._entry_point = None
-        self._eq = self._get_equation()
+        #self._eq = self._get_equation()
 
     def _get_equation(self) -> And :
         return And(*self.get_constraints())
@@ -30,13 +30,17 @@ class Lambda :
     def _is_main(self, element: Exe) -> bool :
         return type(element) == Fun
 
-    def _get_calls(self) -> list :
-        return [e for e in self._entry_point if type(e) == Call]
+    def _get_calls(self, body: list) -> list :
+        return [e for e in body if type(e) == Call]
 
-    def _get_expressions(self) -> list :
-        return [e for e in self._entry_point if type(e) == Expression]
+    def _get_expressions(self, body: list) -> list :
+        return [e for e in body if type(e) == Expression]
 
-    def _get_global_variables(self, declared_vars: list, expr: list) -> list :
+    def _get_declared_vars(self, body: list) -> list :
+        return [e.get_name() for e in body if type(e) == Variable]
+
+    def _get_global_variables(self, expr: list) -> list :
+        declared_vars = self._get_declared_vars(self._entry_point.get_list())
         filter_func = lambda x: x.get_first() in declared_vars or \
                                 x.get_second() in declared_vars
         return list(filter(filter_func,expr))
@@ -45,10 +49,9 @@ class Lambda :
         if self._entry_point is None :
             self._body.build_body()
         else :
-            calls = self._get_calls()
-            expr =  self._get_expressions()
-            declared_vars = [e.get_name() for e in self._entry_point if type(e) == Variable]
-            self._entry_point += self._get_global_variables(declared_vars, expr)
+            calls = self._get_calls(self._entry_point.get_list())
+            expr = self._get_expressions(self._entry_point.get_list())
+            self._entry_point += self._get_global_variables(expr)
             self._entry_point += calls
 
     def set_entry_point(self, block_name: str = None) -> None :
