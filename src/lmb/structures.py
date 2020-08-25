@@ -202,15 +202,27 @@ class Expression(Exe) :
     def get_second(self) -> str :
         return self._second.get_name()
 
-    def _make_constraint(self, ctx: Context, first: Any, second: Any) -> BoolRef :
-        t = ctx.get_type(first)
-        if t == type(second) :
+    def _make_constraint(self, ctx: Context, first: Any, second: Any) -> list :
+        t_s = type(second)
+        if t_s == Value :
+            t = t_s.get_val()
             if t == int :
-                return Int(first) == second
+                return [Int(first) == second]
             elif t == float :
-                return Real(first) == second
+                return [Real(first) == second]
             elif t == str :
-                return String(first) == StringVal(second)
+                return [String(first) == StringVal(second)]
+            # elif t == Array or t == Object :
+            #     second.to_ssa(ctx,first)
+            #     return second.get_constraints()
+        elif t_s == str :
+            type_second = ctx.get_type(second)
+            if type_second == int :
+                return [Int(first) == Int(second)]
+            elif type_second == float :
+                return [Real(first) == Real(second)]
+            elif type_second == str :
+                return [String(first) == String(second)]
 
     def get_constraints(self, ctx: Context = None) -> list :
         return self._constraints
@@ -227,7 +239,7 @@ class Expression(Exe) :
                 second = ctx.get_label(self._second.get_name(),Label.prev)
             else :
                 second = self._second.get_val()
-            self._constraints.append(self._make_constraint(ctx,first,second))
+            self._constraints += self._make_constraint(ctx,first,second)
             
 
 class Call(Exe) :
