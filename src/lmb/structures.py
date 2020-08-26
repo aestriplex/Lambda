@@ -205,17 +205,18 @@ class Expression(Exe) :
     def _make_constraint(self, ctx: Context, first: Any, second: Any) -> list :
         t_s = type(second)
         if t_s == Value :
-            t = t_s.get_val()
+            val_second = second.get_val()
+            t = type(val_second)
             if t == int :
-                return [Int(first) == second]
+                return [Int(first) == val_second]
             elif t == float :
-                return [Real(first) == second]
+                return [Real(first) == val_second]
             elif t == str :
-                return [String(first) == StringVal(second)]
+                return [String(first) == StringVal(val_second)]
             # elif t == Array or t == Object :
             #     second.to_ssa(ctx,first)
             #     return second.get_constraints()
-        elif t_s == str :
+        elif t_s == Variable :
             type_second = ctx.get_type(second)
             if type_second == int :
                 return [Int(first) == Int(second)]
@@ -223,6 +224,8 @@ class Expression(Exe) :
                 return [Real(first) == Real(second)]
             elif type_second == str :
                 return [String(first) == String(second)]
+        elif t_s == Expression :
+            second.to_ssa(ctx)
 
     def get_constraints(self, ctx: Context = None) -> list :
         return self._constraints
@@ -231,14 +234,19 @@ class Expression(Exe) :
         if self._kind == ExprKind.binary : 
             ...
         elif self._kind == ExprKind.update : 
-            ...
+            first = ctx.get_label(self._first.get_name(),Label.prev)
+            if type(self._second) == Variable :
+                second = ctx.get_label(self._second.get_name(),Label.prev)
+            else :
+                second = self._second.get_val()
+            self._constraints += self._make_constraint(ctx,first,second)
         elif self._kind == ExprKind.assignment :
             ctx.add(self._first.get_name())
             first = ctx.get_label(self._first.get_name(),Label.prev)
             if type(self._second) == Variable :
                 second = ctx.get_label(self._second.get_name(),Label.prev)
             else :
-                second = self._second.get_val()
+                second = self._second#.get_val()
             self._constraints += self._make_constraint(ctx,first,second)
             
 

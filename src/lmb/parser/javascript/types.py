@@ -13,8 +13,11 @@ class EsprimaTypes() :
     while_statement = "WhileStatement"
     do_while_statement = "DoWhileStatement"
     fun_declaration = "FunctionDeclaration"
+    generic_expression = ["UpdateExpression", "AssignmentExpression", "BinaryExpression"]
     fun_expr = ["FunctionExpression","ArrowFunctionExpression"]
     declarator = ["VariableDeclarator","ObjectDeclarator"]
+
+update_operators = ["+=", "-=", "*=", "/=", "&=", "|="]
     
 class VarKind(Enum) :
     var = 0

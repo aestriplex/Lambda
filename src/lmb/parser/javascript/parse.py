@@ -2,7 +2,7 @@ import esprima
 import time
 from typing import Generator, Any
 from lmb.structures import Call, Expression, Conditional, Iteration, Fun, Variable, Body, Array, Object, Value
-from .types import EsprimaTypes, VarKind, VarType, LoopKind
+from .types import EsprimaTypes, VarKind, VarType, LoopKind, update_operators
 from lmb.options import ExprKind
 from lmb.exceptions import KindTypeException
 
@@ -113,14 +113,25 @@ class Parser :
     
     def _parse_block_expr(self, src: esprima.nodes) -> Expression :
         kind = self._get_kind(src.type)
-        if kind == ExprKind.update :
+        if src.operator in update_operators :
+            operator = "="
+            first = Variable(src.left.name)
+            kind = ExprKind.assignment
+            second = Expression(ExprKind.binary,
+                                src.operator[0],
+                                Variable(src.left.name),
+                                Variable(src.right.name))
+        elif kind == ExprKind.update :
             first = src.argument.name
             if src.operator == "++" :
                 embedded_operator = "+"
             elif src.operator == "--" :
                 embedded_operator = "-"
             operator = "="
-            second = Expression(ExprKind.update,embedded_operator,first,1)
+            second = Expression(ExprKind.update,
+                                embedded_operator,
+                                Variable(first),
+                                Value(None,1))
             kind = ExprKind.assignment
         else :
             if src.left.name is not None and src.right.name is not None :
@@ -128,7 +139,10 @@ class Parser :
                 second = Variable(src.right.name)
             elif src.left.name is not None and src.right.name is None :
                 first = Variable(src.left.name)
-                second = Value(None, src.right.value)
+                if src.right.type == VarType.literal :
+                    second = Value(None, src.right.value)
+                elif src.right.type in EsprimaTypes.generic_expression :
+                    second = self._parse_block_expr(src.right)
             elif src.left.name is None and src.right.name is not None :
                 first = Variable(src.right.name)
                 second = Value(None, src.left.value)
