@@ -17,7 +17,7 @@ class Context :
     def __init__(self, parent: Context = None) -> None :
         self._occurrencies = {}
         self._types = {}
-        self.parent = parent
+        self._parent = parent
 
     def __src__(self) -> str :
         var = "var" if len(self._occurrencies) == 1 else "vars"
@@ -49,8 +49,8 @@ class Context :
 
         return self._types[label]
 
-    def set_parent(self, parent: Context) -> None :
-        self.parent = parent
+    def set__parent(self, parent: Context) -> None :
+        self._parent = parent
 
     def get_label(self, var_name: str, var_type: Label) -> str :
         """

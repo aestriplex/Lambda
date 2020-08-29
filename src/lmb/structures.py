@@ -60,6 +60,25 @@ class Body() :
         for e in self._content :
             e.to_ssa(self._global_context)
 
+class Block(Exe) :
+
+    def __init__(self, content: list, parent_ctx: Context = None) -> None :
+        self._content = content
+        if parent_ctx is not None :
+            self._ctx = Context(parent_ctx)
+        else :
+            self._ctx = None
+    
+    def get_constraints(self, ctx: Context = None) -> list : 
+        ...
+
+    def to_ssa(self, ctx: Context, parent_label: str = None) : 
+        if self._ctx is None :
+            self._ctx = Context(ctx)
+
+        for e in self._content :
+            e.to_ssa(self._ctx)
+
 class Array(Exe) :
 
     def __init__(self, name: str, content: list) -> None :
@@ -292,8 +311,8 @@ class Expression(Exe) :
             raise IncosistentTypeExpression(self)
 
     def _get_binary_variable(self, ctx: Context, var_name: str) -> z3 :
-        t_second = ctx.get_type(var_name())
-        lbl_second = ctx.get_label(var_name(), Label.prev)
+        t_second = ctx.get_type(var_name)
+        lbl_second = ctx.get_label(var_name, Label.prev)
         return self._get_z3_type(lbl_second, t_second)
 
     def get_constraints(self, ctx: Context = None) -> list :
@@ -377,8 +396,8 @@ class Conditional(Exe) :
 
     def __init__(self, test: Exe, if_block: list, else_block: list = None) -> None :
         self.test = test
-        self.if_block = if_block
-        self.else_block = else_block
+        self.if_block = Block(if_block)
+        self.else_block = Block(else_block)
         self._constraints = []
 
     def __str__(self) -> str :
@@ -394,7 +413,9 @@ class Conditional(Exe) :
     def get_constraints(self, ctx: Context = None) -> list : ...
     
     def to_ssa(self, ctx: Context, parent_label: str = None) :
-        pass
+        self.test.to_ssa(ctx)
+        self.if_block.to_ssa(ctx)
+        self.else_block.to_ssa(ctx)
 
 class Iteration(Exe):
 
