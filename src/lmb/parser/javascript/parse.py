@@ -112,6 +112,25 @@ class Parser :
                     v.append(self._parse_block_variable(d,kind))
         return v
     
+    def _get_expr_components(self, left: object, right: object) -> tuple :
+        if left.name is not None and right.name is not None :
+            first = Variable(left.name)
+            second = Variable(right.name)
+        elif left.name is not None and right.name is None :
+            first = Variable(left.name)
+            if right.type == VarType.literal :
+                second = Value(None, right.value)
+            elif right.type in EsprimaTypes.generic_expression :
+                second = self._parse_block_expr(right)
+        elif left.name is None and right.name is not None :
+            first = Variable(right.name)
+            second = Value(None, left.value)
+        else :
+            first = Value(None, right.value)
+            second = Value(None, left.value)
+        
+        return first, second
+    
     def _parse_block_expr(self, src: esprima.nodes) -> Expression :
         kind = self._get_kind(src.type)
         if src.operator in update_operators :
@@ -134,23 +153,33 @@ class Parser :
                                 Variable(src.argument.name),
                                 Value(None,1))
             kind = ExprKind.assignment
-        else :
-            if src.left.name is not None and src.right.name is not None :
-                first = Variable(src.left.name)
-                second = Variable(src.right.name)
-            elif src.left.name is not None and src.right.name is None :
-                first = Variable(src.left.name)
-                if src.right.type == VarType.literal :
-                    second = Value(None, src.right.value)
-                elif src.right.type in EsprimaTypes.generic_expression :
-                    second = self._parse_block_expr(src.right)
-            elif src.left.name is None and src.right.name is not None :
-                first = Variable(src.right.name)
-                second = Value(None, src.left.value)
-            else :
-                first = Value(None, src.right.value)
-                second = Value(None, src.left.value)
+        elif kind == ExprKind.assignment :
+            first, second = self._get_expr_components(src.left, src.right)
             operator = src.operator
+        elif kind == ExprKind.binary :
+            if src.right.type == EsprimaTypes.bin_expr and \
+                src.left.type == EsprimaTypes.bin_expr :
+                operator = src.operator
+                first = self._parse_block_expr(src.left)
+                second = self._parse_block_expr(src.right)
+            elif src.right.type == EsprimaTypes.bin_expr :
+                first = self._parse_block_expr(src.right)
+                operator = src.operator
+                if src.left.name is None :
+                    second = Value(None, src.left.value)
+                else :
+                    second = Variable(src.left.name)
+            elif src.left.type == EsprimaTypes.bin_expr :
+                if src.right.name is None :
+                    first = Value(None, src.right.value)
+                else :
+                    first = Variable(src.right.name)
+                second = self._parse_block_expr(src.left)
+                operator = src.operator
+            else:
+                first, second = self._get_expr_components(src.left, src.right)
+                operator = src.operator
+
         
         return Expression(kind,operator,first,second)
 

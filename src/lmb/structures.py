@@ -6,7 +6,7 @@ from .context import Context, Label
 from .utils import remove_ctx_index
 from .options import ExprKind
 from typing import Any, Generator
-from z3 import z3, And, Or, Int, Real, String, StringVal, BoolRef
+from z3 import z3, And, Or, Int, Real, String, IntVal, RealVal, StringVal, BoolRef
 
 _ANONYMOUS = "Anonymous"
 
@@ -278,6 +278,14 @@ class Expression(Exe) :
             return Real(name)
         elif t == str :
             return String(name)
+    
+    def _get_z3_value(self, value: object) -> z3 :
+        if type(value) == int :
+            return IntVal(value)
+        elif type(value) == float :
+            return RealVal(value)
+        elif type(value) == str :
+            return StringVal(value)
 
     def _check_consistency(self, t1: Any, t2: Any) -> None :
         if t1 != t2 :
@@ -299,10 +307,10 @@ class Expression(Exe) :
                 if type(self._second) == Variable :
                     second = self._get_binary_variable(ctx,self._second.get_name())
                 elif type(self._second) == Value :
-                    second = self._second.get_val()
+                    second = self._get_z3_value(self._second.get_val())
                 elif type(self._second) == Expression :
                     self._second.to_ssa(ctx)
-                    second = self._second.get_constraints(ctx)
+                    second = self._second.get_constraints(ctx)[0]
             elif type(self._first) == Variable :
                 t_first = ctx.get_type(self._first.get_name())
                 lbl_first = ctx.get_label(self._first.get_name(), Label.prev)
@@ -312,22 +320,22 @@ class Expression(Exe) :
                 elif type(self._second) == Value :
                     t_second = type(self._second.get_val())
                     self._check_consistency(t_first,t_second)
-                    second = self._second.get_val()
+                    second = self._get_z3_value(self._second.get_val())
                 elif type(self._second) == Expression :
                     self._second.to_ssa(ctx)
-                    second = self._second.get_constraints(ctx)
+                    second = self._second.get_constraints(ctx)[0]
             elif type(self._first) == Value :
-                first = self._first.get_val()
-                t_first = type(first)
+                first = self._get_z3_value(self._first.get_val())
+                t_first = type(self._first.get_val())
                 if type(self._second) == Variable :
                     second = self._get_binary_variable(ctx,self._second.get_name())
                     self._check_consistency(t_first,t_second)
                 elif type(self._second) == Value :
                     self._check_consistency(type(self._first),type(self._second))
-                    second = self._second.get_val()
+                    second = self._get_z3_value(self._second.get_val())
                 elif type(self._second) == Expression :
                     self._second.to_ssa(ctx)
-                    second = self._second.get_constraints(ctx)
+                    second = self._second.get_constraints(ctx)[0]
             self._constraints.append(self._get_z3_operator(first,second,self._operator))
         elif self._kind == ExprKind.assignment :
             if type(self._second) == Expression :
