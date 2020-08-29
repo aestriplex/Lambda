@@ -1,4 +1,5 @@
 from typing import Callable
+from z3 import z3
 
 remove_ctx_index = r"\_[0-9]"
 

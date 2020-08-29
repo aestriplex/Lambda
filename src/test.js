@@ -26,8 +26,8 @@ var f2 = (tmp) => {
     var k = 3;
     var b = 2;
     k = 4;
-    f += k;
-    f++;
+    b = k + 2;
+    b++;
 }
 // console.assert(x == 2);
 // abc(4);

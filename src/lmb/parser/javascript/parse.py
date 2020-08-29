@@ -7,7 +7,8 @@ from lmb.options import ExprKind
 from lmb.exceptions import KindTypeException
 
 class Parser :
-
+    """
+    """
     def __init__(self, source: str, stats: bool = False) -> None :
         if stats :
             self._start_time = time.time()
@@ -116,21 +117,21 @@ class Parser :
         if src.operator in update_operators :
             operator = "="
             first = Variable(src.left.name)
-            kind = ExprKind.assignment
             second = Expression(ExprKind.binary,
                                 src.operator[0],
                                 Variable(src.left.name),
                                 Variable(src.right.name))
+            kind = ExprKind.assignment
         elif kind == ExprKind.update :
-            first = src.argument.name
+            first = Variable(src.argument.name)
             if src.operator == "++" :
                 embedded_operator = "+"
             elif src.operator == "--" :
                 embedded_operator = "-"
             operator = "="
-            second = Expression(ExprKind.update,
+            second = Expression(ExprKind.binary,
                                 embedded_operator,
-                                Variable(first),
+                                Variable(src.argument.name),
                                 Value(None,1))
             kind = ExprKind.assignment
         else :
