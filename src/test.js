@@ -23,8 +23,10 @@
 // }
 
 var f2 = (tmp) => {
-    var a = [1,"f",3];
-    var k = 5;
+    var k = 3;
+    var b = 2;
+    if(b>k)
+        k = (b+2)*3;
 }
 // console.assert(x == 2);
 // abc(4);

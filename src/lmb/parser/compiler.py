@@ -1,8 +1,6 @@
 from enum import Enum
+from lmb.options import Language
 from .javascript.parse import Parser
-
-class Language(Enum) :
-    Javascript = 0x00
 
 class Compiler :
 

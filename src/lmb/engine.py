@@ -1,6 +1,7 @@
 from typing import Any
 from z3 import And
-from .parser.compiler import Compiler, Language
+from .options import Language
+from .parser.compiler import Compiler
 from lmb.context import Context
 from lmb.structures import Body, Exe, Fun, Call, Expression, Variable
 from lmb.exceptions import InvalidEntryPointException
@@ -53,6 +54,7 @@ class Lambda :
             expr = self._get_expressions(self._entry_point.get_list())
             self._entry_point += self._get_global_variables(expr)
             self._entry_point += calls
+            self._entry_point.build_body()
 
     def set_entry_point(self, block_name: str = None) -> None :
         if block_name is not None :
