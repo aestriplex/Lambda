@@ -6,7 +6,7 @@ from .context import Context, Label
 from .utils import remove_ctx_index
 from .options import ExprKind
 from typing import Any, Generator
-from z3 import z3, And, Or, Int, Real, String, IntVal, RealVal, StringVal, BoolRef
+from z3 import z3, And, Or, If, Int, Real, String, IntVal, RealVal, StringVal, BoolRef
 
 _ANONYMOUS = "Anonymous"
 
@@ -69,8 +69,14 @@ class Block(Exe) :
         else :
             self._ctx = None
     
+    def get_content(self) -> list :
+        return self._content
+    
     def get_constraints(self, ctx: Context = None) -> list : 
-        ...
+        c = []
+        for e in self._content :
+            c += e.get_constraints()
+        return c
 
     def to_ssa(self, ctx: Context, parent_label: str = None) : 
         if self._ctx is None :
@@ -243,6 +249,14 @@ class Expression(Exe) :
             return And(first,second)
         elif op == "||" :  
             return Or(first,second)
+        elif op == ">" :
+            return first > second
+        elif op == "<" :
+            return first < second
+        elif op == "<=" :
+            return first <= second
+        elif op == ">=" :
+            return first >= second
     
     def _get_compound_value(self, first: Any, second: Any, op: str) -> Any :
         if op == "+" :  
@@ -263,6 +277,14 @@ class Expression(Exe) :
             return first and second
         elif op == "||" :  
             return first or second
+        elif op == ">" :
+            return first > second
+        elif op == "<" :
+            return first < second
+        elif op == "<=" :
+            return first <= second
+        elif op == ">=" :
+            return first >= second
 
     def _make_constraint(self, ctx: Context, first: Any, second: Any) -> list :
         t_s = type(second)
@@ -401,21 +423,27 @@ class Conditional(Exe) :
         self._constraints = []
 
     def __str__(self) -> str :
-        if self.else_block is None :
+        if self.else_block.get_content() is None :
             return f"<Conditional (if)>"
         return f"<Conditional (if/else)>"
 
     def __repr__(self) -> str :
-        if self.else_block is None :
+        if self.else_block.get_content() is None :
             return f"<Conditional (if) at {hex(id(self))}>"
         return f"<Conditional (if/else) at {hex(id(self))}>"
 
-    def get_constraints(self, ctx: Context = None) -> list : ...
+    def get_constraints(self, ctx: Context = None) -> list :
+        test_constraints = self.test.get_constraints()[0]
+        if_block_constraints = And(*self.if_block.get_constraints())
+        if self.else_block.get_content() is not None :
+            else_block_constraints = And(*self.else_block.get_constraints())
+        return [If(test_constraints,if_block_constraints,else_block_constraints)]
     
     def to_ssa(self, ctx: Context, parent_label: str = None) :
         self.test.to_ssa(ctx)
         self.if_block.to_ssa(ctx)
-        self.else_block.to_ssa(ctx)
+        if self.else_block.get_content() is not None :
+            self.else_block.to_ssa(ctx)
 
 class Iteration(Exe):
 
