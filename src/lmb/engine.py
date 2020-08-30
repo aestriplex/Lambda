@@ -66,4 +66,7 @@ class Lambda :
             if self._entry_point is None :
                 raise InvalidEntryPointException()
 
+    def check(self) -> None :
+        pass
+
     def set_post_condition(self, condition: Any, line: int) : ...

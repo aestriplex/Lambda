@@ -36,6 +36,9 @@ class Context :
     
     def get_content(self) -> tuple :
         return self._occurrencies, self._types
+    
+    def get_last_update_vars(self) -> list :
+        return [f"{k}_{self._occurrencies[k]}" for k in self._occurrencies.keys()]
 
     def add(self, occurrence: str, _type: Any = None) -> None :
         """

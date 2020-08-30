@@ -3,7 +3,7 @@ import re
 from abc import ABC, abstractmethod
 from .exceptions import VarTypeException, UnsupportedTypeException, BaseTypeException, IncosistentTypeExpression
 from .context import Context, Label
-from .utils import remove_ctx_index
+from .utils import remove_ctx_index, remove_var_name, get_z3_type
 from .options import ExprKind
 from typing import Any, Generator
 from z3 import z3, And, Or, If, Int, Real, String, IntVal, RealVal, StringVal, BoolRef
@@ -64,6 +64,8 @@ class Block(Exe) :
 
     def __init__(self, content: list, parent_ctx: Context = None) -> None :
         self._content = content
+        self._modified = None
+        self._constraints = []
         if parent_ctx is not None :
             self._ctx = Context(parent_ctx)
         else :
@@ -72,18 +74,27 @@ class Block(Exe) :
     def get_content(self) -> list :
         return self._content
     
+    def get_modified(self) -> list :
+        return self._modified
+    
     def get_constraints(self, ctx: Context = None) -> list : 
-        c = []
-        for e in self._content :
-            c += e.get_constraints()
-        return c
+        return self._constraints
+    
+    def add_constraints(self, constraints: list) -> None :
+        self._constraints += constraints
 
     def to_ssa(self, ctx: Context, parent_label: str = None) : 
         if self._ctx is None :
             self._ctx = Context(ctx)
+        
+        if self._content is not None :
+            for e in self._content :
+                e.to_ssa(self._ctx)
 
-        for e in self._content :
-            e.to_ssa(self._ctx)
+            for e in self._content :
+                self._constraints += e.get_constraints()
+
+        self._modified = self._ctx.get_last_update_vars()
 
 class Array(Exe) :
 
@@ -309,16 +320,8 @@ class Expression(Exe) :
             second.to_ssa(ctx)
         else :
             t_f = ctx.get_type(first)
-            f = self._get_z3_type(first,t_f)
+            f = get_z3_type(first,t_f)
             return [f == second]
-
-    def _get_z3_type(self, name: str, t: object) -> z3 :
-        if t == int :
-            return Int(name)
-        elif t == float :
-            return Real(name)
-        elif t == str :
-            return String(name)
     
     def _get_z3_value(self, value: object) -> z3 :
         if type(value) == int :
@@ -335,7 +338,7 @@ class Expression(Exe) :
     def _get_binary_variable(self, ctx: Context, var_name: str) -> z3 :
         t_second = ctx.get_type(var_name)
         lbl_second = ctx.get_label(var_name, Label.prev)
-        return self._get_z3_type(lbl_second, t_second)
+        return get_z3_type(lbl_second, t_second)
 
     def get_constraints(self, ctx: Context = None) -> list :
         return self._constraints
@@ -355,7 +358,7 @@ class Expression(Exe) :
             elif type(self._first) == Variable :
                 t_first = ctx.get_type(self._first.get_name())
                 lbl_first = ctx.get_label(self._first.get_name(), Label.prev)
-                first = self._get_z3_type(lbl_first, t_first)
+                first = get_z3_type(lbl_first, t_first)
                 if type(self._second) == Variable :
                     second = self._get_binary_variable(ctx,self._second.get_name())
                 elif type(self._second) == Value :
@@ -423,27 +426,37 @@ class Conditional(Exe) :
         self._constraints = []
 
     def __str__(self) -> str :
-        if self.else_block.get_content() is None :
-            return f"<Conditional (if)>"
         return f"<Conditional (if/else)>"
 
     def __repr__(self) -> str :
-        if self.else_block.get_content() is None :
-            return f"<Conditional (if) at {hex(id(self))}>"
         return f"<Conditional (if/else) at {hex(id(self))}>"
+
+    def _get_diff(self, ctx: Context, modified: list) -> list :
+        constraints = []
+        for e in modified :
+            name = re.sub(remove_ctx_index,"",e)
+            index = re.sub(remove_var_name,"",e)
+            last_label = ctx.get_label(name,Label.prev)
+            last_index = re.sub(remove_var_name,"",last_label)
+            t = ctx.get_type(e)
+            if index != last_index :
+                constraints.append(get_z3_type(e,t) == get_z3_type(last_label,t))
+        return constraints
 
     def get_constraints(self, ctx: Context = None) -> list :
         test_constraints = self.test.get_constraints()[0]
         if_block_constraints = And(*self.if_block.get_constraints())
-        if self.else_block.get_content() is not None :
-            else_block_constraints = And(*self.else_block.get_constraints())
+        else_block_constraints = And(*self.else_block.get_constraints())
         return [If(test_constraints,if_block_constraints,else_block_constraints)]
     
     def to_ssa(self, ctx: Context, parent_label: str = None) :
         self.test.to_ssa(ctx)
         self.if_block.to_ssa(ctx)
-        if self.else_block.get_content() is not None :
-            self.else_block.to_ssa(ctx)
+        self.else_block.to_ssa(ctx)
+        if_block_updated = self.if_block.get_modified()
+        else_block_updated = self.else_block.get_modified()
+        self.if_block.add_constraints(self._get_diff(ctx,else_block_updated))
+        self.else_block.add_constraints(self._get_diff(ctx,if_block_updated))
 
 class Iteration(Exe):
 
