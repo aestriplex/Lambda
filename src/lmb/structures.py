@@ -6,7 +6,7 @@ from .context import Context, Label
 from .utils import remove_ctx_index, remove_var_name, get_z3_type
 from .options import ExprKind
 from typing import Any, Generator
-from z3 import z3, And, Or, If, Int, Real, String, IntVal, RealVal, StringVal, BoolRef
+from z3 import z3, And, Or, If, Int, Real, String, IntVal, RealVal, StringVal, ExprRef, BoolRef
 
 _ANONYMOUS = "Anonymous"
 
@@ -431,6 +431,9 @@ class Conditional(Exe) :
     def __repr__(self) -> str :
         return f"<Conditional (if/else) at {hex(id(self))}>"
 
+    def get_test(self) -> ExprRef :
+        return self.test.get_constraints()[0]
+
     def _global_diff(self, ctx: Context, modified: list) -> list :
         constraints = []
         for e in modified :
@@ -504,6 +507,9 @@ class Fun(Exe) :
     
     def get_name(self) -> str :
         return self._name
+
+    def get_body(self) -> list :
+        return self._body
 
     def get_local_context(self) -> Context :
         return self._local_context

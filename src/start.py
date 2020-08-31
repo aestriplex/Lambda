@@ -7,5 +7,5 @@ with open(r".\src\test.js","r") as f :
     l = Lambda(f.read(), Language.Javascript)
     l.set_entry_point("f2")
     l.build()
-    tmp = l.get_constraints()
+    res = l.check()
     end = "end"

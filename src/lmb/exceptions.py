@@ -68,3 +68,8 @@ class IncosistentTypeExpression(Exception) :
     def __init__(self, expr) :
         expr_str = f"{expr.get_first()} {expr.get_operator()} {expr.get_second()}"
         super().__init__(f"In expression {expr_str} types are incostistent ().")
+
+class InvalidModeException(Exception) :
+
+    def __init__(self) :
+        super().__init__(f"You cannot set a post-condition in ``detect unreachable`` mode.")

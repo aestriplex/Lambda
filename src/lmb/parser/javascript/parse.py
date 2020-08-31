@@ -179,7 +179,6 @@ class Parser :
             else:
                 first, second = self._get_expr_components(src.left, src.right)
                 operator = src.operator
-
         
         return Expression(kind,operator,first,second)
 

@@ -11,7 +11,7 @@ class Label(Enum) :
     curr   = 0x00
     prev = 0x01
 
-class Context :
+class Context() :
     """
     """
     def __init__(self, parent: Context = None) -> None :
