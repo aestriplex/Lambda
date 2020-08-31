@@ -25,8 +25,12 @@
 var f2 = (tmp) => {
     var k = 3;
     var b = 2;
-    if(b>k)
+    if(b>k) {
         k = (b+2)*3;
+        b = 0;
+    }
+    else
+        k = 0;
 }
 // console.assert(x == 2);
 // abc(4);

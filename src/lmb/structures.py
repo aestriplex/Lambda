@@ -431,7 +431,7 @@ class Conditional(Exe) :
     def __repr__(self) -> str :
         return f"<Conditional (if/else) at {hex(id(self))}>"
 
-    def _get_diff(self, ctx: Context, modified: list) -> list :
+    def _global_diff(self, ctx: Context, modified: list) -> list :
         constraints = []
         for e in modified :
             name = re.sub(remove_ctx_index,"",e)
@@ -442,6 +442,13 @@ class Conditional(Exe) :
             if index != last_index :
                 constraints.append(get_z3_type(e,t) == get_z3_type(last_label,t))
         return constraints
+    
+    def _diff_from(self, target: list, source: list) -> list :
+        diff = []
+        for e in target :
+            if e not in source :
+                diff.append(e)
+        return diff
 
     def get_constraints(self, ctx: Context = None) -> list :
         test_constraints = self.test.get_constraints()[0]
@@ -455,8 +462,10 @@ class Conditional(Exe) :
         self.else_block.to_ssa(ctx)
         if_block_updated = self.if_block.get_modified()
         else_block_updated = self.else_block.get_modified()
-        self.if_block.add_constraints(self._get_diff(ctx,else_block_updated))
-        self.else_block.add_constraints(self._get_diff(ctx,if_block_updated))
+        diff_if_else = self._diff_from(if_block_updated,else_block_updated)
+        diff_else_if = self._diff_from(else_block_updated,if_block_updated)
+        self.if_block.add_constraints(self._global_diff(ctx,diff_else_if))
+        self.else_block.add_constraints(self._global_diff(ctx,diff_if_else))
 
 class Iteration(Exe):
 
