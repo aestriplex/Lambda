@@ -3,10 +3,10 @@ import re
 from abc import ABC, abstractmethod
 from .exceptions import VarTypeException, UnsupportedTypeException, BaseTypeException, IncosistentTypeExpression
 from .context import Context, Label
-from .utils import remove_ctx_index
+from .utils import remove_ctx_index, remove_var_name, get_z3_type
 from .options import ExprKind
 from typing import Any, Generator
-from z3 import z3, And, Or, If, Int, Real, String, IntVal, RealVal, StringVal, BoolRef
+from z3 import z3, And, Or, If, Int, Real, String, IntVal, RealVal, StringVal, ExprRef, BoolRef
 
 _ANONYMOUS = "Anonymous"
 
@@ -64,6 +64,8 @@ class Block(Exe) :
 
     def __init__(self, content: list, parent_ctx: Context = None) -> None :
         self._content = content
+        self._modified = None
+        self._constraints = []
         if parent_ctx is not None :
             self._ctx = Context(parent_ctx)
         else :
@@ -72,18 +74,27 @@ class Block(Exe) :
     def get_content(self) -> list :
         return self._content
     
+    def get_modified(self) -> list :
+        return self._modified
+    
     def get_constraints(self, ctx: Context = None) -> list : 
-        c = []
-        for e in self._content :
-            c += e.get_constraints()
-        return c
+        return self._constraints
+    
+    def add_constraints(self, constraints: list) -> None :
+        self._constraints += constraints
 
     def to_ssa(self, ctx: Context, parent_label: str = None) : 
         if self._ctx is None :
             self._ctx = Context(ctx)
+        
+        if self._content is not None :
+            for e in self._content :
+                e.to_ssa(self._ctx)
 
-        for e in self._content :
-            e.to_ssa(self._ctx)
+            for e in self._content :
+                self._constraints += e.get_constraints()
+
+        self._modified = self._ctx.get_last_update_vars()
 
 class Array(Exe) :
 
@@ -298,27 +309,20 @@ class Expression(Exe) :
             elif t == str :
                 return [String(first) == StringVal(val_second)]
         elif t_s == Variable :
-            type_second = ctx.get_type(second)
+            second_lbl = second.get_label()
+            type_second = ctx.get_type(second_lbl)
             if type_second == int :
-                return [Int(first) == Int(second)]
+                return [Int(first) == Int(second_lbl)]
             elif type_second == float :
-                return [Real(first) == Real(second)]
+                return [Real(first) == Real(second_lbl)]
             elif type_second == str :
-                return [String(first) == String(second)]
+                return [String(first) == String(second_lbl)]
         elif t_s == Expression :
             second.to_ssa(ctx)
         else :
             t_f = ctx.get_type(first)
-            f = self._get_z3_type(first,t_f)
+            f = get_z3_type(first,t_f)
             return [f == second]
-
-    def _get_z3_type(self, name: str, t: object) -> z3 :
-        if t == int :
-            return Int(name)
-        elif t == float :
-            return Real(name)
-        elif t == str :
-            return String(name)
     
     def _get_z3_value(self, value: object) -> z3 :
         if type(value) == int :
@@ -335,7 +339,7 @@ class Expression(Exe) :
     def _get_binary_variable(self, ctx: Context, var_name: str) -> z3 :
         t_second = ctx.get_type(var_name)
         lbl_second = ctx.get_label(var_name, Label.prev)
-        return self._get_z3_type(lbl_second, t_second)
+        return get_z3_type(lbl_second, t_second)
 
     def get_constraints(self, ctx: Context = None) -> list :
         return self._constraints
@@ -355,7 +359,7 @@ class Expression(Exe) :
             elif type(self._first) == Variable :
                 t_first = ctx.get_type(self._first.get_name())
                 lbl_first = ctx.get_label(self._first.get_name(), Label.prev)
-                first = self._get_z3_type(lbl_first, t_first)
+                first = get_z3_type(lbl_first, t_first)
                 if type(self._second) == Variable :
                     second = self._get_binary_variable(ctx,self._second.get_name())
                 elif type(self._second) == Value :
@@ -383,7 +387,9 @@ class Expression(Exe) :
                 self._second.to_ssa(ctx)
                 second = self._second.get_constraints(ctx)[0]
             if type(self._second) == Variable :
-                second = ctx.get_label(self._second.get_name(),Label.prev)
+                second_label = ctx.get_label(self._second.get_name(),Label.prev)
+                self._second.set_label(second_label)
+                second = self._second
             elif type(self._second) == Value :
                 second = self._second #.get_val()
             ctx.add(self._first.get_name())
@@ -423,27 +429,49 @@ class Conditional(Exe) :
         self._constraints = []
 
     def __str__(self) -> str :
-        if self.else_block.get_content() is None :
-            return f"<Conditional (if)>"
         return f"<Conditional (if/else)>"
 
     def __repr__(self) -> str :
-        if self.else_block.get_content() is None :
-            return f"<Conditional (if) at {hex(id(self))}>"
         return f"<Conditional (if/else) at {hex(id(self))}>"
+
+    def get_test(self) -> ExprRef :
+        return self.test.get_constraints()[0]
+
+    def _global_diff(self, ctx: Context, modified: list) -> list :
+        constraints = []
+        for e in modified :
+            name = re.sub(remove_ctx_index,"",e)
+            index = re.sub(remove_var_name,"",e)
+            last_label = ctx.get_label(name,Label.prev)
+            last_index = re.sub(remove_var_name,"",last_label)
+            t = ctx.get_type(e)
+            if index != last_index :
+                constraints.append(get_z3_type(e,t) == get_z3_type(last_label,t))
+        return constraints
+    
+    def _diff_from(self, target: list, source: list) -> list :
+        diff = []
+        for e in target :
+            if e not in source :
+                diff.append(e)
+        return diff
 
     def get_constraints(self, ctx: Context = None) -> list :
         test_constraints = self.test.get_constraints()[0]
         if_block_constraints = And(*self.if_block.get_constraints())
-        if self.else_block.get_content() is not None :
-            else_block_constraints = And(*self.else_block.get_constraints())
+        else_block_constraints = And(*self.else_block.get_constraints())
         return [If(test_constraints,if_block_constraints,else_block_constraints)]
     
     def to_ssa(self, ctx: Context, parent_label: str = None) :
         self.test.to_ssa(ctx)
         self.if_block.to_ssa(ctx)
-        if self.else_block.get_content() is not None :
-            self.else_block.to_ssa(ctx)
+        self.else_block.to_ssa(ctx)
+        if_block_updated = self.if_block.get_modified()
+        else_block_updated = self.else_block.get_modified()
+        diff_if_else = self._diff_from(if_block_updated,else_block_updated)
+        diff_else_if = self._diff_from(else_block_updated,if_block_updated)
+        self.if_block.add_constraints(self._global_diff(ctx,diff_else_if))
+        self.else_block.add_constraints(self._global_diff(ctx,diff_if_else))
 
 class Iteration(Exe):
 
@@ -483,6 +511,9 @@ class Fun(Exe) :
     def get_name(self) -> str :
         return self._name
 
+    def get_body(self) -> list :
+        return self._body
+
     def get_local_context(self) -> Context :
         return self._local_context
 
@@ -508,12 +539,19 @@ class Variable(Exe) :
         self._name = name
         self._kind = kind
         self._value = value
+        self._label = None
 
     def __str__(self) -> str :
         return f"<Var {self._name}>"
 
     def __repr__(self) -> str :
         return f"<Var {self._name} at {hex(id(self))}>"
+
+    def get_label(self) -> str :
+        return self._label
+
+    def set_label(self, label: str) -> None:
+        self._label = label
 
     def get_name(self) -> str :
         return self._name

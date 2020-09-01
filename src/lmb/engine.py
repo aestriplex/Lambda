@@ -1,23 +1,32 @@
 from typing import Any
-from z3 import And
+from z3 import And, Solver, sat, unsat
 from .options import Language
 from .parser.compiler import Compiler
-from lmb.context import Context
-from lmb.structures import Body, Exe, Fun, Call, Expression, Variable
-from lmb.exceptions import InvalidEntryPointException
+from .context import Context
+from .structures import Body, Exe, Fun, Call, Expression, Variable, Conditional
+from .exceptions import InvalidEntryPointException, InvalidModeException
+from .runtime import Runtime, Mode
 
 class Lambda :
-
-    def __init__(self, src: str, lang: Language) -> None :
+    """
+    """
+    def __init__(self, src: str, lang: Language, mode: Mode = None) -> None :
         comp = Compiler(src, lang)
         self._body = comp.get_compiled_source()
+        self._solver = Solver()
         self._entry_point = None
+        self._conditionals = None
+        if mode is None :
+            self._mode = Mode.detect_unreachable
+        else :
+            self._mode = mode
         #self._eq = self._get_equation()
 
     def _get_equation(self) -> And :
         return And(*self.get_constraints())
 
     def _get_conditionals(self) -> list :
+
         return []
 
     def detect_unreachable(self) -> None : ...
@@ -66,4 +75,31 @@ class Lambda :
             if self._entry_point is None :
                 raise InvalidEntryPointException()
 
-    def set_post_condition(self, condition: Any, line: int) : ...
+    def check(self) -> Runtime :
+        flow = Runtime()
+        if self._mode == Mode.detect_unreachable :
+            body = []
+            for e in self._entry_point.get_list() :
+                if type(e) == Fun :
+                    for b in e.get_body() :
+                        if type(b) == Conditional :
+                            self._solver.add(And(*body))
+                            self._solver.push()
+                            post = b.get_test()
+                            self._solver.add(post)
+                            print(self._solver.check())
+                            self._solver.pop()
+                        else :
+                            if type(b) != Fun :
+                                body += b.get_constraints()
+            # return res
+
+
+        elif self._mode == Mode.post_conditions_only :
+            pass
+        elif self._mode == Mode.post_conditions_full :
+            pass
+
+    def set_post_condition(self, condition: Any, line: int) :
+        if self._mode == Mode.detect_unreachable :
+            raise InvalidModeException()

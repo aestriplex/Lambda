@@ -136,10 +136,17 @@ class Parser :
         if src.operator in update_operators :
             operator = "="
             first = Variable(src.left.name)
+            if src.right.type in EsprimaTypes.generic_expression :
+                embedded_second = self._parse_block_expr(src.right)
+            else :
+                if src.right.value is None :
+                    embedded_second = Value(src.right.value)
+                else :
+                    embedded_second = Variable(src.right.name)
             second = Expression(ExprKind.binary,
                                 src.operator[0],
                                 Variable(src.left.name),
-                                Variable(src.right.name))
+                                embedded_second)
             kind = ExprKind.assignment
         elif kind == ExprKind.update :
             first = Variable(src.argument.name)
@@ -179,7 +186,6 @@ class Parser :
             else:
                 first, second = self._get_expr_components(src.left, src.right)
                 operator = src.operator
-
         
         return Expression(kind,operator,first,second)
 
