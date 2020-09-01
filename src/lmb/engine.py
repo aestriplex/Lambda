@@ -5,7 +5,7 @@ from .parser.compiler import Compiler
 from .context import Context
 from .structures import Body, Exe, Fun, Call, Expression, Variable, Conditional
 from .exceptions import InvalidEntryPointException, InvalidModeException
-from .runtime import Mode
+from .runtime import Runtime, Mode
 
 class Lambda :
     """
@@ -75,10 +75,10 @@ class Lambda :
             if self._entry_point is None :
                 raise InvalidEntryPointException()
 
-    def check(self) -> Any :
+    def check(self) -> Runtime :
+        flow = Runtime()
         if self._mode == Mode.detect_unreachable :
             body = []
-            res = None
             for e in self._entry_point.get_list() :
                 if type(e) == Fun :
                     for b in e.get_body() :

@@ -309,13 +309,14 @@ class Expression(Exe) :
             elif t == str :
                 return [String(first) == StringVal(val_second)]
         elif t_s == Variable :
-            type_second = ctx.get_type(second)
+            second_lbl = second.get_label()
+            type_second = ctx.get_type(second_lbl)
             if type_second == int :
-                return [Int(first) == Int(second)]
+                return [Int(first) == Int(second_lbl)]
             elif type_second == float :
-                return [Real(first) == Real(second)]
+                return [Real(first) == Real(second_lbl)]
             elif type_second == str :
-                return [String(first) == String(second)]
+                return [String(first) == String(second_lbl)]
         elif t_s == Expression :
             second.to_ssa(ctx)
         else :
@@ -386,7 +387,9 @@ class Expression(Exe) :
                 self._second.to_ssa(ctx)
                 second = self._second.get_constraints(ctx)[0]
             if type(self._second) == Variable :
-                second = ctx.get_label(self._second.get_name(),Label.prev)
+                second_label = ctx.get_label(self._second.get_name(),Label.prev)
+                self._second.set_label(second_label)
+                second = self._second
             elif type(self._second) == Value :
                 second = self._second #.get_val()
             ctx.add(self._first.get_name())
@@ -536,12 +539,19 @@ class Variable(Exe) :
         self._name = name
         self._kind = kind
         self._value = value
+        self._label = None
 
     def __str__(self) -> str :
         return f"<Var {self._name}>"
 
     def __repr__(self) -> str :
         return f"<Var {self._name} at {hex(id(self))}>"
+
+    def get_label(self) -> str :
+        return self._label
+
+    def set_label(self, label: str) -> None:
+        self._label = label
 
     def get_name(self) -> str :
         return self._name
