@@ -25,6 +25,7 @@
 var f2 = (tmp) => {
     var k = 2;
     var b = 3;
+    k += b + 2;
     if(b>k) {
         k = (b+2)*3;
         b = 0;
