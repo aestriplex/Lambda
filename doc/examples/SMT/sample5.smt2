@@ -26,17 +26,19 @@
     )
 )
 
+; filling the list
 (assert
     (and
         (= a nil)
         (= b (insert "boNVAMt" a))
         (= c (insert "IywNRY7ef" b))
-        (= d (insert "E0rosOSgT6cT1" c))
+        (= d (insert "cT1" c))
         (= e (insert "kvvlaaU" d))
         (= f (insert "RueGM" e))
     )
 )
 (assert (not (walk f)))
 
+; `unsat` expected
 (check-sat)
 (exit)

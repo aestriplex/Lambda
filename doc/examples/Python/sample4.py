@@ -1,29 +1,37 @@
-from z3 import *
+""" 
+    File name:    Sample4.smt2
 
-LPAR = '('
-RPAR = ')'
+    Copyright (c) May, 2020 - Matteo Nicoli
 
-def init_stack(st) :
-    return st.index == 0
+    /* Code wants to break free */
+"""
 
-def search_err(st) :
-    return If(st.index == 0, True, False)
+from z3 import Solver, Int, And, Not, sat
 
-def push_par(st,par):
-    pass
+def init(values,input_values) :
+    for v,i_s in zip(values,input_values) :
+        yield v == i_s
 
-class Stack :
+def tran(values) :
+    if values == [] or values[1:] == [] :
+        return True
+    if values[1:] is not None :
+        return And(values[0] <= values[1],tran(values[1:]))
 
-    def __init__(self,n) :
-        self.index = [Int(f"index{i}") for i in range(n)]
-        self.cont = String("cont")
+n = int(input("number of integers: "))
 
-string = input("> ")
+input_values = [int(input(f"number {i}: ")) for i in range(1,n+1)]
+values = [Int(f"s_{i}") for i in range(n)]
 
-stack = Stack(len(string))
 s = Solver()
-s.add(init_stack(stack))
 
-for c in string :
-    if c == LPAR or c == RPAR :
-        push_par(stack, c)
+init_condition = init(values,input_values)
+s.add(And(*init_condition))
+
+tran_condition = tran(values)
+s.add(Not(tran_condition))
+
+if s.check() == sat :
+    print(f"counterexample:\n{s.model()}")
+else :
+    print("valid")
