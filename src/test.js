@@ -36,6 +36,8 @@ var f2 = (tmp) => {
         b = 0;
     }
 }
+
+f2(3);
 // console.assert(x == 2);
 // abc(4);
 // abc.embedded();

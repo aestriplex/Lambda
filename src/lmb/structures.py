@@ -20,9 +20,12 @@ class Exe(ABC) :
 
 class Body() :
 
-    def __init__(self, lst: list) -> None :
+    def __init__(self, lst: list, ctx: Context = None) -> None :
         self._content = lst
-        self._global_context = Context()
+        if ctx is None :
+            self._global_context = Context()
+        else :
+            self._global_context = ctx
 
     def __str__(self) -> str :
         var = "var" if len(self._content) == 1 else "vars"
@@ -37,6 +40,9 @@ class Body() :
             raise UnsupportedTypeException(type(other))
         self._content += other
         return self
+
+    def get_context(self) -> Context :
+        return self._global_context
 
     def _get_body_repr(self, body: list, s: str) -> str:
         pass
@@ -58,12 +64,13 @@ class Body() :
     
     def build_body(self) -> None :
         for e in self._content :
-            e.to_ssa(self._global_context)
+            if type(e) != Call :
+                e.to_ssa(self._global_context)
 
 class Block(Exe) :
 
-    def __init__(self, content: list, parent_ctx: Context = None) -> None :
-        self._content = content
+    def __init__(self, body: list, parent_ctx: Context = None) -> None :
+        self._body = body
         self._modified = None
         self._constraints = []
         if parent_ctx is not None :
@@ -71,8 +78,8 @@ class Block(Exe) :
         else :
             self._ctx = None
     
-    def get_content(self) -> list :
-        return self._content
+    def get_body(self) -> list :
+        return self._body
     
     def get_modified(self) -> list :
         return self._modified
@@ -87,11 +94,12 @@ class Block(Exe) :
         if self._ctx is None :
             self._ctx = Context(ctx)
         
-        if self._content is not None :
-            for e in self._content :
-                e.to_ssa(self._ctx)
+        if self._body is not None :
+            for e in self._body :
+                if type(e) != Call :
+                    e.to_ssa(self._ctx)
 
-            for e in self._content :
+            for e in self._body :
                 self._constraints += e.get_constraints()
 
         self._modified = self._ctx.get_last_update_vars()
@@ -412,6 +420,10 @@ class Call(Exe) :
     def get_name(self) -> str :
         return self._name
 
+    def set_fun(self, func: Fun) -> None :
+        self._params = func.get_params()
+        self._func = func
+
     def get_constraints(self, ctx: Context = None) -> list :
         ...
 
@@ -419,6 +431,7 @@ class Call(Exe) :
         function_context = self._func.get_local_context()
         for p in self._params :
             p.to_ssa(function_context)
+        pass
 
 class Conditional(Exe) :
 
@@ -514,6 +527,9 @@ class Fun(Exe) :
     def get_body(self) -> list :
         return self._body
 
+    def get_params(self) -> list :
+        return self._params
+
     def get_local_context(self) -> Context :
         return self._local_context
 
@@ -526,6 +542,7 @@ class Fun(Exe) :
     def to_ssa(self, ctx: Context, parent_label: str = None) -> None :
         """
         """
+        ctx.add_function(self)
         self._local_context.set_parent(ctx)
         for e in self._body :
             e.to_ssa(self._local_context)

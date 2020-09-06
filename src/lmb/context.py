@@ -1,5 +1,6 @@
 from __future__ import annotations
 import re
+import sys
 from typing import Any
 from enum import Enum
 from .utils import remove_ctx_index
@@ -18,6 +19,7 @@ class Context() :
         if parent is None :
             self._occurrencies = {}
             self._types = {}
+            self._functions = {}
         else :
             self._occurrencies, self._types = self._get_from_parent(parent)
         self._parent = parent
@@ -29,6 +31,13 @@ class Context() :
     def __repr__(self) -> str :
         var = "var" if len(self._occurrencies) == 1 else "vars"
         return f"<Context ({len(self._occurrencies)} {var}) at {hex(id(self))}>"
+
+    def get_context_size(self) -> dict :
+        size = {}
+        obj = self.__dict__
+        for key, value in obj.items() :
+            size.update({key : sys.getsizeof(value)})
+        return size
 
     def _get_from_parent(self, parent_ctx: Context) -> tuple :
         parent_occ, parent_types = parent_ctx.get_content()
@@ -53,6 +62,13 @@ class Context() :
                 self._types.update({occurrence : _type})
         else :
             self._occurrencies[occurrence] += 1
+    
+    def add_function(self, fun: Any) -> None :
+        name = fun.get_name()
+        self._functions[name] = fun
+    
+    def get_functions(self) -> dict :
+        return self._functions
 
     def get_type(self, occurrence: str) :
         label = re.sub(remove_ctx_index,"",occurrence)
