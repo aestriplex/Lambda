@@ -42,41 +42,56 @@
     )
 )
 
+(define-fun inner_loop 
+                        (
+                            (_A0 (Array Int Int))
+                            (_A1 (Array Int Int))
+                            (tmp Int)
+                            (_i0 Int)
+                            (_i1 Int)
+                            (_dim Int)
+                        ) Bool
+    (ite
+        (< _i0 (- (- _dim _j0) 1))
+        (and
+            (ite 
+                (> (select _A0 _i0) (select _A0 (+ _i0 1)))
+                (and 
+                    (= tmp (select _A0 _i0))
+                    (= _A1 (store _A0 _i0 (select _A0 (+ _i0 1))))
+                    (= _A1 (store _A0 (+ _i0 1) tmp))
+                )
+                (= _A1 _A0)
+            )
+            (= _i1 (+ _i0 1))
+        )
+        (and 
+            (= _i1 _i0) ;(= _i1 (+ _i0 1))
+            (= _A1 _A0)
+        )
+    )
+)
+
 ; the body of the bubblesort algorithm
 (define-fun bsort_step 
                         (
-                            (_A0 (Array Int Int)) 
-                            (_A1 (Array Int Int)) 
-                            (tmp Int) 
-                            (_i0 Int) 
-                            (_j0 Int) 
-                            (_i1 Int) 
+                            (_A0 (Array Int Int))
+                            (_A1 (Array Int Int))
+                            (tmp Int)
+                            (_i0 Int)
+                            (_j0 Int)
+                            (_i1 Int)
                             (_j1 Int)
                             (_dim Int)
                         ) Bool
     (ite
         (< _j0 (- _dim 1))
         (and
-            (ite
-                (< _i0 (- _dim 1))
-                (and
-                    (ite 
-                        (> (select _A0 _i0) (select _A0 (+ _i0 1)))
-                        (and 
-                            (= tmp (select _A0 _i0))
-                            (= _A1 (store _A0 _i0 (select _A0 (+ _i0 1))))
-                            (= _A1 (store _A0 (+ _i0 1) tmp))
-                        )
-                        (= _A1 _A0)
-                    )
-                    (= _i1 (+ _i0 1))
-                )
-                (= _i1 (+ _i0 1))
-            )
+            (inner_loop _A0 _A1 tmp _i0 _i1 _dim)
             (= _j1 (+ _j0 1))
         )
         (and
-            (= _j1 (+ _j0 1))
+            (= _j1 _j0) ;(= _j1 (+ _j0 1))
             (= _A1 _A0)
         )
     )
@@ -125,4 +140,5 @@
 
 ; `unsat` expected
 (check-sat)
+(get-model)
 (exit)

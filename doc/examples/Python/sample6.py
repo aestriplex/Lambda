@@ -69,7 +69,6 @@ s.add(And(*init_check_condition))
 post_condition = mk_post_condition(values)
 s.add(Not(post_condition))
 
-
 if s.check() == sat :
     print(f"counterexample:\n{s.model()}")
 else :
