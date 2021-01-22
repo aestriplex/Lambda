@@ -29,6 +29,7 @@ var f2 = (tmp) => {
     if(b>k) {
         k = (b+2)*3;
         b = 0;
+        k = 6;
     }
     else
         k = 0;
@@ -37,7 +38,7 @@ var f2 = (tmp) => {
     }
 }
 
-f2(3);
+//f2(3);
 // console.assert(x == 2);
 // abc(4);
 // abc.embedded();

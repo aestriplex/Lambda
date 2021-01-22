@@ -32,6 +32,12 @@ class Context() :
         var = "var" if len(self._occurrencies) == 1 else "vars"
         return f"<Context ({len(self._occurrencies)} {var}) at {hex(id(self))}>"
 
+    def update(self, name: str, n_occurrencies: int) -> None :
+        if name in self._occurrencies:
+            self._occurrencies[name] = n_occurrencies
+        else :
+            raise VariableMissingException(name)
+
     def get_context_size(self) -> dict :
         size = {}
         obj = self.__dict__

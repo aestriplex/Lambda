@@ -34,7 +34,7 @@ class Lambda :
             self._mode = mode
         #self._eq = self._get_equation()
 
-    def _get_equation(self) -> And :
+    def get_equation(self) -> And :
         return And(*self.get_constraints())
 
     def _get_conditionals(self) -> list :

@@ -462,12 +462,34 @@ class Conditional(Exe) :
                 constraints.append(get_z3_type(e,t) == get_z3_type(last_label,t))
         return constraints
     
+    def _get_max_vars(self, occ: list) -> list :
+        tmp = {}
+        for o in occ :
+            if o[0] in tmp :
+                if tmp[o[0]] < o[1] :
+                    tmp[o[0]] = o[1]
+            else :
+                tmp[o[0]] = o[1]
+        return [f"{k}_{tmp[k]}" for k in tmp]
+    
     def _diff_from(self, target: list, source: list) -> list :
-        diff = []
-        for e in target :
-            if e not in source :
-                diff.append(e)
-        return diff
+        diff = [e.split("_") for e in target if e not in source]
+        return self._get_max_vars(diff)
+    
+    def _split_var(self, var: str) -> tuple :
+        return (re.sub(remove_ctx_index,"",var), int(re.sub(remove_var_name,"",var)))
+
+    
+    def _merge_diff(self, diff_if_else: list, diff_else_if: list) -> list :
+        tmp = list(map(self._split_var,diff_if_else + diff_else_if))
+        merged = []
+        for el in set(map(lambda x: x[0],tmp)) :
+            max = 0
+            for t in tmp :
+                if t[0] == el and t[1] > max :
+                    max = t[1]
+            merged.append(f"{el}_{max}")
+        return merged
 
     def get_constraints(self, ctx: Context = None) -> list :
         test_constraints = self.test.get_constraints()[0]
@@ -476,6 +498,7 @@ class Conditional(Exe) :
         return [If(test_constraints,if_block_constraints,else_block_constraints)]
     
     def to_ssa(self, ctx: Context, parent_label: str = None) :
+        print(ctx.get_content()[0])
         self.test.to_ssa(ctx)
         self.if_block.to_ssa(ctx)
         self.else_block.to_ssa(ctx)
@@ -483,8 +506,11 @@ class Conditional(Exe) :
         else_block_updated = self.else_block.get_modified()
         diff_if_else = self._diff_from(if_block_updated,else_block_updated)
         diff_else_if = self._diff_from(else_block_updated,if_block_updated)
-        self.if_block.add_constraints(self._global_diff(ctx,diff_else_if))
-        self.else_block.add_constraints(self._global_diff(ctx,diff_if_else))
+        merged = self._merge_diff(diff_if_else,diff_else_if)
+        a = [e for e in if_block_updated if e not in merged]
+        b = [e for e in else_block_updated if e not in merged]
+        self.if_block.add_constraints(self._global_diff(ctx,a))
+        self.else_block.add_constraints(self._global_diff(ctx,b))
 
 class Iteration(Exe):
 
@@ -546,6 +572,26 @@ class Fun(Exe) :
         self._local_context.set_parent(ctx)
         for e in self._body :
             e.to_ssa(self._local_context)
+            
+class Thread(Exe) :
+    
+    def __init__(self, ctx: Context, content: Block, tid: int) -> None :
+        self._ctx = ctx
+        self._content = content 
+        self._tid = tid
+        self._constraints = []
+    
+    def __repr__(self) -> str :
+        return f"<THREAD {self._tid} at {hex(id(self))}>"
+    
+    def __str__(self) -> str :
+        return f"<THREAD {self._tid}>"
+    
+    def get_constraints(self, ctx: Context = None) -> list :
+        pass
+
+    def to_ssa(self, ctx: Context, parent_label: str = None) :
+        pass
 
 class Variable(Exe) :
 
