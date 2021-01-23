@@ -1,5 +1,6 @@
 from __future__ import annotations
 import re
+from enum import Enum
 from abc import ABC, abstractmethod
 from .exceptions import VarTypeException, UnsupportedTypeException, BaseTypeException, IncosistentTypeExpression
 from .context import Context, Label
@@ -9,6 +10,11 @@ from typing import Any, Generator
 from z3 import z3, And, Or, If, Int, Real, String, IntVal, RealVal, StringVal, ExprRef, BoolRef
 
 _ANONYMOUS = "Anonymous"
+
+class BlockType(Enum) :
+    generic = 0x00
+    if_block = 0x01
+    else_block = 0x02
 
 class Exe(ABC) :
 
@@ -69,10 +75,14 @@ class Body() :
 
 class Block(Exe) :
 
-    def __init__(self, body: list, parent_ctx: Context = None) -> None :
+    def __init__(self, 
+                 body: list, 
+                 block_type: BlockType = BlockType.generic, 
+                 parent_ctx: Context = None) -> None :
         self._body = body
         self._modified = None
         self._constraints = []
+        self._b_type = block_type
         if parent_ctx is not None :
             self._ctx = Context(parent_ctx)
         else :
@@ -80,8 +90,11 @@ class Block(Exe) :
     
     def get_body(self) -> list :
         return self._body
+
+    def get_context(self) -> Context :
+        return self._ctx
     
-    def get_modified(self) -> list :
+    def get_modified(self) -> dict :
         return self._modified
     
     def get_constraints(self, ctx: Context = None) -> list : 
@@ -93,6 +106,8 @@ class Block(Exe) :
     def to_ssa(self, ctx: Context, parent_label: str = None) : 
         if self._ctx is None :
             self._ctx = Context(ctx)
+        else :
+            self._ctx = ctx
         
         if self._body is not None :
             for e in self._body :
@@ -102,7 +117,8 @@ class Block(Exe) :
             for e in self._body :
                 self._constraints += e.get_constraints()
 
-        self._modified = self._ctx.get_last_update_vars()
+        # self._modified = self._ctx.get_last_update_vars()
+        self._modified = self._ctx.get_occurrencies()
 
 class Array(Exe) :
 
@@ -437,8 +453,8 @@ class Conditional(Exe) :
 
     def __init__(self, test: Exe, if_block: list, else_block: list = None) -> None :
         self.test = test
-        self.if_block = Block(if_block)
-        self.else_block = Block(else_block)
+        self.if_block = Block(if_block, BlockType.if_block)
+        self.else_block = Block(else_block, BlockType.else_block)
         self._constraints = []
 
     def __str__(self) -> str :
@@ -472,14 +488,20 @@ class Conditional(Exe) :
                 tmp[o[0]] = o[1]
         return [f"{k}_{tmp[k]}" for k in tmp]
     
-    def _diff_from(self, target: list, source: list) -> list :
-        diff = [e.split("_") for e in target if e not in source]
-        return self._get_max_vars(diff)
+    def _diff_from(self, target: dict, source: dict) -> list :
+        vars = []
+        for k in target :
+            if k in source and source[k] > target[k] :
+                for i in range(target[k]+1,source[k]+1) :
+                    vars.append(f"{k}_{i}")
+            elif k not in source :
+                for i in range(target[k]+1) :
+                    vars.append(f"{k}_{i}")
+        return vars
     
     def _split_var(self, var: str) -> tuple :
         return (re.sub(remove_ctx_index,"",var), int(re.sub(remove_var_name,"",var)))
 
-    
     def _merge_diff(self, diff_if_else: list, diff_else_if: list) -> list :
         tmp = list(map(self._split_var,diff_if_else + diff_else_if))
         merged = []
@@ -498,12 +520,23 @@ class Conditional(Exe) :
         return [If(test_constraints,if_block_constraints,else_block_constraints)]
     
     def to_ssa(self, ctx: Context, parent_label: str = None) :
-        print(ctx.get_content()[0])
+        init_occ = ctx.get_content()[0].copy()
+        print(init_occ)
         self.test.to_ssa(ctx)
         self.if_block.to_ssa(ctx)
         self.else_block.to_ssa(ctx)
-        if_block_updated = self.if_block.get_modified()
-        else_block_updated = self.else_block.get_modified()
+        # Merging the two contexts
+        #ctx = Context.merge_context(self.if_block.get_context(),self.else_block.get_context())
+
+        if_block_updated = {k:v for k,v in self.if_block.get_modified().items()\
+                            if k not in init_occ or v != init_occ[k]}
+
+        else_block_updated = {k:v for k,v in self.else_block.get_modified().items()\
+                             if k not in init_occ or v != init_occ[k]}
+
+        print(f"IF UPDATED {if_block_updated}")
+        print(f"ELSE UPDATED {else_block_updated}")
+        
         diff_if_else = self._diff_from(if_block_updated,else_block_updated)
         diff_else_if = self._diff_from(else_block_updated,if_block_updated)
         merged = self._merge_diff(diff_if_else,diff_else_if)
