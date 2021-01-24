@@ -1,5 +1,6 @@
 from typing import Any
 from z3 import And, Solver, sat, unsat
+from enum import Enum
 from .options import Language
 from .parser.compiler import Compiler
 from .context import Context
@@ -7,14 +8,25 @@ from .structures import Body, Exe, Fun, Call, Expression, Variable, Conditional
 from .exceptions import InvalidEntryPointException, InvalidModeException
 from .runtime import Runtime, Mode
 
+class Scope(Enum) :
+    full  = 0x00
+    local = 0x01
+
 class Lambda :
     """
     """
-    def __init__(self, src: str, lang: Language, mode: Mode = None) -> None :
+    def __init__(
+                self, 
+                src: str, 
+                lang: Language, 
+                mode: Mode = None, 
+                uninterpreted: list = None) -> None :
         comp = Compiler(src, lang)
         self._body = comp.get_compiled_source()
         self._solver = Solver()
-        self._entry_point = None
+        self._uninterpreted = uninterpreted
+        self._entry_point = self._body
+        self._scope = Scope.full
         self._conditionals = None
         if mode is None :
             self._mode = Mode.detect_unreachable
@@ -22,11 +34,10 @@ class Lambda :
             self._mode = mode
         #self._eq = self._get_equation()
 
-    def _get_equation(self) -> And :
+    def get_equation(self) -> And :
         return And(*self.get_constraints())
 
     def _get_conditionals(self) -> list :
-
         return []
 
     def detect_unreachable(self) -> None : ...
@@ -55,15 +66,25 @@ class Lambda :
                                 x.get_second() in declared_vars
         return list(filter(filter_func,expr))
 
+    def _build_calls(self, body: list) -> None :
+        ctx = self._entry_point.get_context()
+        functions = ctx.get_functions()
+        for e in body :
+            if hasattr(e,"get_body") :
+                self._build_calls(e.get_body())
+            elif type(e) == Call :
+                name = e.get_name()
+                e.set_fun(functions[name])
+                e.to_ssa()
+
     def build(self) -> None :
-        if self._entry_point is None :
-            self._body.build_body()
-        else :
+        if self._scope == Scope.local :
             calls = self._get_calls(self._entry_point.get_list())
             expr = self._get_expressions(self._entry_point.get_list())
             self._entry_point += self._get_global_variables(expr)
             self._entry_point += calls
-            self._entry_point.build_body()
+        self._entry_point.build_body()
+        self._build_calls(self._entry_point.get_list())
 
     def set_entry_point(self, block_name: str = None) -> None :
         if block_name is not None :
@@ -71,8 +92,9 @@ class Lambda :
             for e in blocks :
                 if e.get_name() == block_name :
                     self._entry_point = Body([e])
+                    self._scope = Scope.local
                 
-            if self._entry_point is None :
+            if self._scope == Scope.full :
                 raise InvalidEntryPointException()
 
     def check(self) -> Runtime :
@@ -92,12 +114,8 @@ class Lambda :
                         else :
                             if type(b) != Fun :
                                 body += b.get_constraints()
-            # return res
 
-
-        elif self._mode == Mode.post_conditions_only :
-            pass
-        elif self._mode == Mode.post_conditions_full :
+        elif self._mode == Mode.post_conditions :
             pass
 
     def set_post_condition(self, condition: Any, line: int) :

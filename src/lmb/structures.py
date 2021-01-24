@@ -1,5 +1,6 @@
 from __future__ import annotations
 import re
+from enum import Enum
 from abc import ABC, abstractmethod
 from .exceptions import VarTypeException, UnsupportedTypeException, BaseTypeException, IncosistentTypeExpression
 from .context import Context, Label
@@ -9,6 +10,11 @@ from typing import Any, Generator
 from z3 import z3, And, Or, If, Int, Real, String, IntVal, RealVal, StringVal, ExprRef, BoolRef
 
 _ANONYMOUS = "Anonymous"
+
+class BlockType(Enum) :
+    generic = 0x00
+    if_block = 0x01
+    else_block = 0x02
 
 class Exe(ABC) :
 
@@ -20,9 +26,12 @@ class Exe(ABC) :
 
 class Body() :
 
-    def __init__(self, lst: list) -> None :
+    def __init__(self, lst: list, ctx: Context = None) -> None :
         self._content = lst
-        self._global_context = Context()
+        if ctx is None :
+            self._global_context = Context()
+        else :
+            self._global_context = ctx
 
     def __str__(self) -> str :
         var = "var" if len(self._content) == 1 else "vars"
@@ -37,6 +46,9 @@ class Body() :
             raise UnsupportedTypeException(type(other))
         self._content += other
         return self
+
+    def get_context(self) -> Context :
+        return self._global_context
 
     def _get_body_repr(self, body: list, s: str) -> str:
         pass
@@ -58,23 +70,31 @@ class Body() :
     
     def build_body(self) -> None :
         for e in self._content :
-            e.to_ssa(self._global_context)
+            if type(e) != Call :
+                e.to_ssa(self._global_context)
 
 class Block(Exe) :
 
-    def __init__(self, content: list, parent_ctx: Context = None) -> None :
-        self._content = content
+    def __init__(self, 
+                 body: list, 
+                 block_type: BlockType = BlockType.generic, 
+                 parent_ctx: Context = None) -> None :
+        self._body = body
         self._modified = None
         self._constraints = []
+        self._b_type = block_type
         if parent_ctx is not None :
             self._ctx = Context(parent_ctx)
         else :
             self._ctx = None
     
-    def get_content(self) -> list :
-        return self._content
+    def get_body(self) -> list :
+        return self._body
+
+    def get_context(self) -> Context :
+        return self._ctx
     
-    def get_modified(self) -> list :
+    def get_modified(self) -> dict :
         return self._modified
     
     def get_constraints(self, ctx: Context = None) -> list : 
@@ -86,15 +106,19 @@ class Block(Exe) :
     def to_ssa(self, ctx: Context, parent_label: str = None) : 
         if self._ctx is None :
             self._ctx = Context(ctx)
+        else :
+            self._ctx = ctx
         
-        if self._content is not None :
-            for e in self._content :
-                e.to_ssa(self._ctx)
+        if self._body is not None :
+            for e in self._body :
+                if type(e) != Call :
+                    e.to_ssa(self._ctx)
 
-            for e in self._content :
+            for e in self._body :
                 self._constraints += e.get_constraints()
 
-        self._modified = self._ctx.get_last_update_vars()
+        # self._modified = self._ctx.get_last_update_vars()
+        self._modified = self._ctx.get_occurrencies()
 
 class Array(Exe) :
 
@@ -412,6 +436,10 @@ class Call(Exe) :
     def get_name(self) -> str :
         return self._name
 
+    def set_fun(self, func: Fun) -> None :
+        self._params = func.get_params()
+        self._func = func
+
     def get_constraints(self, ctx: Context = None) -> list :
         ...
 
@@ -419,13 +447,14 @@ class Call(Exe) :
         function_context = self._func.get_local_context()
         for p in self._params :
             p.to_ssa(function_context)
+        pass
 
 class Conditional(Exe) :
 
     def __init__(self, test: Exe, if_block: list, else_block: list = None) -> None :
         self.test = test
-        self.if_block = Block(if_block)
-        self.else_block = Block(else_block)
+        self.if_block = Block(if_block, BlockType.if_block)
+        self.else_block = Block(else_block, BlockType.else_block)
         self._constraints = []
 
     def __str__(self) -> str :
@@ -449,12 +478,34 @@ class Conditional(Exe) :
                 constraints.append(get_z3_type(e,t) == get_z3_type(last_label,t))
         return constraints
     
-    def _diff_from(self, target: list, source: list) -> list :
-        diff = []
-        for e in target :
-            if e not in source :
-                diff.append(e)
-        return diff
+    def _diff_from(self, target: dict, source: dict, init_occ: dict) -> list :
+        vars = []
+        for k in target :
+            if k in source and target[k] > source[k] :
+                for i in range(source[k]+1,target[k]+1) :
+                    vars.append(f"{k}_{i}")
+            elif k not in source :
+                if k in init_occ:
+                    for i in range(init_occ[k]+1,target[k]+1) :
+                        vars.append(f"{k}_{i}")
+                else :
+                    for i in range(target[k]+1) :
+                        vars.append(f"{k}_{i}")
+        return vars
+    
+    def _split_var(self, var: str) -> tuple :
+        return (re.sub(remove_ctx_index,"",var), int(re.sub(remove_var_name,"",var)))
+
+    def _merge_diff(self, diff_if_else: list, diff_else_if: list) -> list :
+        tmp = list(map(self._split_var,diff_if_else + diff_else_if))
+        merged = []
+        for el in set(map(lambda x: x[0],tmp)) :
+            max = 0
+            for t in tmp :
+                if t[0] == el and t[1] > max :
+                    max = t[1]
+            merged.append(f"{el}_{max}")
+        return merged
 
     def get_constraints(self, ctx: Context = None) -> list :
         test_constraints = self.test.get_constraints()[0]
@@ -463,15 +514,28 @@ class Conditional(Exe) :
         return [If(test_constraints,if_block_constraints,else_block_constraints)]
     
     def to_ssa(self, ctx: Context, parent_label: str = None) :
+        init_occ = ctx.get_content()[0].copy()
         self.test.to_ssa(ctx)
         self.if_block.to_ssa(ctx)
         self.else_block.to_ssa(ctx)
-        if_block_updated = self.if_block.get_modified()
-        else_block_updated = self.else_block.get_modified()
-        diff_if_else = self._diff_from(if_block_updated,else_block_updated)
-        diff_else_if = self._diff_from(else_block_updated,if_block_updated)
-        self.if_block.add_constraints(self._global_diff(ctx,diff_else_if))
-        self.else_block.add_constraints(self._global_diff(ctx,diff_if_else))
+        
+        if_block_updated = {k:v for k,v in self.if_block.get_modified().items()\
+                            if k not in init_occ or v != init_occ[k]}
+
+        else_block_updated = {k:v for k,v in self.else_block.get_modified().items()\
+                             if k not in init_occ or v != init_occ[k]}
+        
+        diff_if_else = self._diff_from(if_block_updated,else_block_updated,init_occ)
+        diff_else_if = self._diff_from(else_block_updated,if_block_updated,init_occ)
+        self.if_block.add_constraints(self._global_diff(self.if_block.get_context(),diff_else_if))
+        self.else_block.add_constraints(self._global_diff(self.else_block.get_context(),diff_if_else))
+        
+        # Merging the two contexts
+        new_ctx = Context.merge_context(self.if_block.get_context(),self.else_block.get_context())
+        ctx.set_occurrencies(new_ctx.get_occurrencies())
+        ctx.set_functions(new_ctx.get_functions())
+        ctx.set_types(new_ctx.get_types())
+        
 
 class Iteration(Exe):
 
@@ -514,6 +578,9 @@ class Fun(Exe) :
     def get_body(self) -> list :
         return self._body
 
+    def get_params(self) -> list :
+        return self._params
+
     def get_local_context(self) -> Context :
         return self._local_context
 
@@ -526,9 +593,30 @@ class Fun(Exe) :
     def to_ssa(self, ctx: Context, parent_label: str = None) -> None :
         """
         """
+        ctx.add_function(self)
         self._local_context.set_parent(ctx)
         for e in self._body :
             e.to_ssa(self._local_context)
+            
+class Thread(Exe) :
+    
+    def __init__(self, ctx: Context, content: Block, tid: int) -> None :
+        self._ctx = ctx
+        self._content = content 
+        self._tid = tid
+        self._constraints = []
+    
+    def __repr__(self) -> str :
+        return f"<THREAD {self._tid} at {hex(id(self))}>"
+    
+    def __str__(self) -> str :
+        return f"<THREAD {self._tid}>"
+    
+    def get_constraints(self, ctx: Context = None) -> list :
+        pass
+
+    def to_ssa(self, ctx: Context, parent_label: str = None) :
+        pass
 
 class Variable(Exe) :
 

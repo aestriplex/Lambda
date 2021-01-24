@@ -29,13 +29,20 @@ var f2 = (tmp) => {
     if(b>k) {
         k = (b+2)*3;
         b = 0;
+        k = 6;
     }
-    else
+    else if (k < b)
         k = 0;
-    if(k>b) {
-        b = 0;
-    }
+    
+    // if(b>k) {
+    //     k = (b+2)*3;
+    //     b = 0;
+    //     k = 6;
+    // }
+    
 }
+
+//f2(3);
 // console.assert(x == 2);
 // abc(4);
 // abc.embedded();
