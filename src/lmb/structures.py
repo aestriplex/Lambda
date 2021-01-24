@@ -478,25 +478,19 @@ class Conditional(Exe) :
                 constraints.append(get_z3_type(e,t) == get_z3_type(last_label,t))
         return constraints
     
-    def _get_max_vars(self, occ: list) -> list :
-        tmp = {}
-        for o in occ :
-            if o[0] in tmp :
-                if tmp[o[0]] < o[1] :
-                    tmp[o[0]] = o[1]
-            else :
-                tmp[o[0]] = o[1]
-        return [f"{k}_{tmp[k]}" for k in tmp]
-    
-    def _diff_from(self, target: dict, source: dict) -> list :
+    def _diff_from(self, target: dict, source: dict, init_occ: dict) -> list :
         vars = []
         for k in target :
-            if k in source and source[k] > target[k] :
-                for i in range(target[k]+1,source[k]+1) :
+            if k in source and target[k] > source[k] :
+                for i in range(source[k]+1,target[k]+1) :
                     vars.append(f"{k}_{i}")
             elif k not in source :
-                for i in range(target[k]+1) :
-                    vars.append(f"{k}_{i}")
+                if k in init_occ:
+                    for i in range(init_occ[k]+1,target[k]+1) :
+                        vars.append(f"{k}_{i}")
+                else :
+                    for i in range(target[k]+1) :
+                        vars.append(f"{k}_{i}")
         return vars
     
     def _split_var(self, var: str) -> tuple :
@@ -521,29 +515,27 @@ class Conditional(Exe) :
     
     def to_ssa(self, ctx: Context, parent_label: str = None) :
         init_occ = ctx.get_content()[0].copy()
-        print(init_occ)
         self.test.to_ssa(ctx)
         self.if_block.to_ssa(ctx)
         self.else_block.to_ssa(ctx)
-        # Merging the two contexts
-        #ctx = Context.merge_context(self.if_block.get_context(),self.else_block.get_context())
-
+        
         if_block_updated = {k:v for k,v in self.if_block.get_modified().items()\
                             if k not in init_occ or v != init_occ[k]}
 
         else_block_updated = {k:v for k,v in self.else_block.get_modified().items()\
                              if k not in init_occ or v != init_occ[k]}
-
-        print(f"IF UPDATED {if_block_updated}")
-        print(f"ELSE UPDATED {else_block_updated}")
         
-        diff_if_else = self._diff_from(if_block_updated,else_block_updated)
-        diff_else_if = self._diff_from(else_block_updated,if_block_updated)
-        merged = self._merge_diff(diff_if_else,diff_else_if)
-        a = [e for e in if_block_updated if e not in merged]
-        b = [e for e in else_block_updated if e not in merged]
-        self.if_block.add_constraints(self._global_diff(ctx,a))
-        self.else_block.add_constraints(self._global_diff(ctx,b))
+        diff_if_else = self._diff_from(if_block_updated,else_block_updated,init_occ)
+        diff_else_if = self._diff_from(else_block_updated,if_block_updated,init_occ)
+        self.if_block.add_constraints(self._global_diff(self.if_block.get_context(),diff_else_if))
+        self.else_block.add_constraints(self._global_diff(self.else_block.get_context(),diff_if_else))
+        
+        # Merging the two contexts
+        new_ctx = Context.merge_context(self.if_block.get_context(),self.else_block.get_context())
+        ctx.set_occurrencies(new_ctx.get_occurrencies())
+        ctx.set_functions(new_ctx.get_functions())
+        ctx.set_types(new_ctx.get_types())
+        
 
 class Iteration(Exe):
 

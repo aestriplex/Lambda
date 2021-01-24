@@ -1,7 +1,8 @@
 from lmb.parser.compiler import Compiler, Language
 from lmb.engine import Lambda
+from pathlib import Path
 
-with open(r"/Users/teo/Documents/GitHub/Lambda/src/test.js","r") as f :
+with open(Path(__file__).parent / "test.js","r") as f :
     # comp = Compiler(f.read(), Language.Javascript)
     # b = comp.get_compiled_source()
     l = Lambda(f.read(), Language.Javascript)
