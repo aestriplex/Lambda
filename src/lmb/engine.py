@@ -6,7 +6,9 @@ from .parser.compiler import Compiler
 from .context import Context
 from .structures import Body, Exe, Fun, Call, Expression, Variable, Conditional
 from .exceptions import InvalidEntryPointException, InvalidModeException
-from .runtime import Runtime, Mode
+from .runtime import Runtime, Mode, Outcome
+
+from pathlib import Path
 
 class Scope(Enum) :
     full  = 0x00
@@ -24,6 +26,7 @@ class Lambda :
         comp = Compiler(src, lang)
         self._body = comp.get_compiled_source()
         self._solver = Solver()
+        #self._solver.smtlib2_log=Path(__file__).parent / "a.smt2"
         self._uninterpreted = uninterpreted
         self._entry_point = self._body
         self._scope = Scope.full
@@ -98,6 +101,7 @@ class Lambda :
                 raise InvalidEntryPointException()
 
     def check(self) -> Runtime :
+        runtime = Runtime()
         if self._mode == Mode.detect_unreachable :
             body = []
             for e in self._entry_point.get_list() :
@@ -106,16 +110,25 @@ class Lambda :
                         if type(b) == Conditional :
                             self._solver.add(And(*body))
                             self._solver.push()
-                            post = b.get_test()
+                            post = b.get_test_constraint()
                             self._solver.add(post)
-                            print(self._solver.check())
+                            res = self._solver.check()
+                            if res == sat :
+                                runtime.add_to_result(b.get_test(), Outcome.ok)
+                            else :
+                                runtime.add_to_result(b.get_test(), Outcome.detected)
+                            #print(self._solver.check())
+                            #print(self._solver.to_smt2())
                             self._solver.pop()
+                            body += b.get_constraints()
                         else :
                             if type(b) != Fun :
                                 body += b.get_constraints()
 
         elif self._mode == Mode.post_conditions :
             pass
+
+        return runtime.get_result()
 
     def set_post_condition(self, condition: Any, line: int) :
         if self._mode == Mode.detect_unreachable :

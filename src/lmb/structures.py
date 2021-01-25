@@ -268,6 +268,9 @@ class Expression(Exe) :
     def get_operator(self) -> str :
         return self._operator
 
+    def get_expr_str(self) -> str :
+        return f"{self._first} {self._operator} {self._second}"
+
     def _get_z3_operator(self, first: z3, second: z3, op: str) -> BoolRef :
         if op == "+" :  
             return first + second
@@ -466,8 +469,11 @@ class Conditional(Exe) :
     def __repr__(self) -> str :
         return f"<Conditional (if/else) at {hex(id(self))}>"
 
-    def get_test(self) -> ExprRef :
+    def get_test_constraint(self) -> ExprRef :
         return self.test.get_constraints()[0]
+    
+    def get_test(self) -> Expression :
+        return self.test
     
     def _update_ctx(self, ctx: Context) -> None :
         # Merging the two contexts
