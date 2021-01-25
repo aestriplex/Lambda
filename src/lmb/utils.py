@@ -2,7 +2,7 @@ from typing import Callable
 from z3 import z3, Int, Real, String
 
 remove_ctx_index = r"\_[0-9]"
-remove_var_name = r"[a-zA-z]*\_"
+remove_var_name = r".*\_"
 
 def get_z3_type(name: str, t: object) -> z3 :
     if t == int :

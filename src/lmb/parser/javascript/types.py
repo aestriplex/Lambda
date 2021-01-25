@@ -28,7 +28,7 @@ class LoopKind(Enum) :
     while_loop = 1
     do_while_loop = 2
 
-class CallType(Enum) :
+class CallType :
     identifier = "Identifier"
     member = "MemberExpression"
     
