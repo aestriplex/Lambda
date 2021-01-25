@@ -24,15 +24,23 @@
 
 var f2 = (tmp) => {
     var k = 2;
+    var a = 7;
     var b = 3;
+    var m = [15,67];
+    var d = {a : 1,b:8};
     k = b;
     if(b>k) {
         k = (b+2)*3;
-        b = 0;
+        b = a;
         k = 6;
+        d.a = 2;
+        d.b = 26;
+        m[0] = 3;
+        
+    } else if (b>k){
+        m[0] = 6;
+        b = 6;
     }
-    else if (k < b)
-        k = 0;
     
     // if(b>k) {
     //     k = (b+2)*3;

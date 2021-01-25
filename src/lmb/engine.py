@@ -98,7 +98,6 @@ class Lambda :
                 raise InvalidEntryPointException()
 
     def check(self) -> Runtime :
-        flow = Runtime()
         if self._mode == Mode.detect_unreachable :
             body = []
             for e in self._entry_point.get_list() :

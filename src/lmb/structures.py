@@ -146,7 +146,7 @@ class Array(Exe) :
             lbl = f"{self._name}[{i}]"
         if parent_label is not None :
             lbl = f"{self._clean_label(parent_label)}{lbl}"
-        ctx.add(lbl, type(val))
+        ctx.add(lbl, val.get_type())
         return ctx.get_label(lbl,Label.prev)
 
     def get_constraints(self, ctx: Context = None) -> list :
@@ -188,7 +188,7 @@ class Object(Exe) :
             lbl = f"{self._name}.{key}"
         if parent_label is not None :
             lbl = f"{self._clean_label(parent_label)}.{lbl}"
-        ctx.add(lbl, type(val))
+        ctx.add(lbl, val.get_type())
         return ctx.get_label(lbl,Label.prev)
 
     def get_constraints(self, ctx: Context = None) -> list :
@@ -221,6 +221,9 @@ class Value(Exe) :
 
     def get_val(self) -> Any :
         return self._content
+    
+    def get_type(self) -> Any :
+        return self._type
 
     def _find_label(self, ctx: Context) -> str :
         ctx.add(self._name, self._type)
@@ -465,6 +468,13 @@ class Conditional(Exe) :
 
     def get_test(self) -> ExprRef :
         return self.test.get_constraints()[0]
+    
+    def _update_ctx(self, ctx: Context) -> None :
+        # Merging the two contexts
+        new_ctx = Context.merge_context(self.if_block.get_context(),self.else_block.get_context())
+        ctx.set_occurrencies(new_ctx.get_occurrencies())
+        ctx.set_functions(new_ctx.get_functions())
+        ctx.set_types(new_ctx.get_types())
 
     def _global_diff(self, ctx: Context, modified: list) -> list :
         constraints = []
@@ -474,6 +484,7 @@ class Conditional(Exe) :
             last_label = ctx.get_label(name,Label.prev)
             last_index = re.sub(remove_var_name,"",last_label)
             t = ctx.get_type(e)
+            ctx.add(name,t)
             if index != last_index :
                 constraints.append(get_z3_type(e,t) == get_z3_type(last_label,t))
         return constraints
@@ -530,12 +541,7 @@ class Conditional(Exe) :
         self.if_block.add_constraints(self._global_diff(self.if_block.get_context(),diff_else_if))
         self.else_block.add_constraints(self._global_diff(self.else_block.get_context(),diff_if_else))
         
-        # Merging the two contexts
-        new_ctx = Context.merge_context(self.if_block.get_context(),self.else_block.get_context())
-        ctx.set_occurrencies(new_ctx.get_occurrencies())
-        ctx.set_functions(new_ctx.get_functions())
-        ctx.set_types(new_ctx.get_types())
-        
+        self._update_ctx(ctx)
 
 class Iteration(Exe):
 

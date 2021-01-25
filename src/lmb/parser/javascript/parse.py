@@ -2,7 +2,7 @@ import esprima
 import time
 from typing import Generator, Any
 from lmb.structures import Call, Expression, Conditional, Iteration, Fun, Variable, Body, Array, Object, Value
-from .types import EsprimaTypes, VarKind, VarType, LoopKind, update_operators
+from .types import EsprimaTypes, VarKind, VarType, LoopKind, update_operators, CallType
 from lmb.options import ExprKind
 from lmb.exceptions import KindTypeException
 
@@ -112,6 +112,12 @@ class Parser :
                     v.append(self._parse_block_variable(d,kind))
         return v
     
+    def _get_call_name(self, obj: str, member: str) :
+        return f"{obj}.{member}"
+
+    def _get_arr_name(self, obj: str, index: str) :
+        return f"{obj}[{index}]"
+    
     def _get_expr_components(self, left: object, right: object) -> tuple :
         if left.name is not None and right.name is not None :
             first = Variable(left.name)
@@ -125,6 +131,12 @@ class Parser :
         elif left.name is None and right.name is not None :
             first = Variable(right.name)
             second = Value(None, left.value)
+        elif left.type == CallType.member and right.type == VarType.literal :
+            if left.computed is True :
+                first = Variable(self._get_arr_name(left.object.name,left.property.value))
+            else :
+                first = Variable(self._get_call_name(left.object.name,left.property.name))
+            second = Value(None,right.value)
         else :
             first = Value(None, right.value)
             second = Value(None, left.value)
