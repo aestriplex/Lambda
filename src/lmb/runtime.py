@@ -14,8 +14,9 @@ class Mode(Enum) :
     post_conditions     = 0x01
 
 class Outcome(Enum) :
-    ok        = 0x00
-    detected  = 0x01
+    ok           = 0x00
+    unreachable  = 0x01
+    useless      = 0x02
 
 class Runtime :
 

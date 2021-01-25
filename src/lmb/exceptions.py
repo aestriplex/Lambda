@@ -67,7 +67,7 @@ class IncosistentTypeExpression(Exception) :
 
     def __init__(self, expr) :
         expr_str = f"{expr.get_first()} {expr.get_operator()} {expr.get_second()}"
-        super().__init__(f"In expression {expr_str} types are incostistent ().")
+        super().__init__(f"In expression `{expr_str}` types are incostistent.")
 
 class InvalidModeException(Exception) :
 
