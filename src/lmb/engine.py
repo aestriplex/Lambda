@@ -26,7 +26,6 @@ class Lambda :
         comp = Compiler(src, lang)
         self._body = comp.get_compiled_source()
         self._solver = Solver()
-        #self._solver.smtlib2_log=Path(__file__).parent / "a.smt2"
         self._uninterpreted = uninterpreted
         self._entry_point = self._body
         self._scope = Scope.full
@@ -35,15 +34,15 @@ class Lambda :
             self._mode = Mode.detect_unreachable
         else :
             self._mode = mode
-        #self._eq = self._get_equation()
 
     def get_equation(self) -> And :
+        """
+        It returns the Z3 object corresponding to the SSA translation of the program
+        """
         return And(*self.get_constraints())
 
     def _get_conditionals(self) -> list :
         return []
-
-    def detect_unreachable(self) -> None : ...
 
     def get_constraints(self) -> list :
         c = []

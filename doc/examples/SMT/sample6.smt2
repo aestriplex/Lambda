@@ -52,23 +52,13 @@
                             (_dim Int)
                         ) Bool
     (ite
-        (< _i0 (- (- _dim _j0) 1))
+        (> (select _A0 _i0) (select _A0 (+ _i0 1)))
         (and
-            (ite 
-                (> (select _A0 _i0) (select _A0 (+ _i0 1)))
-                (and 
-                    (= tmp (select _A0 _i0))
-                    (= _A1 (store _A0 _i0 (select _A0 (+ _i0 1))))
-                    (= _A1 (store _A0 (+ _i0 1) tmp))
-                )
-                (= _A1 _A0)
-            )
-            (= _i1 (+ _i0 1))
+            (= tmp (select _A0 _i0))
+            (= _A1 (store _A0 _i0 (select _A0 (+ _i0 1))))
+            (= _A1 (store _A0 (+ _i0 1) tmp))
         )
-        (and 
-            (= _i1 _i0) ;(= _i1 (+ _i0 1))
-            (= _A1 _A0)
-        )
+        (= _A1 _A0)
     )
 )
 
@@ -86,12 +76,19 @@
                         ) Bool
     (ite
         (< _j0 (- _dim 1))
-        (and
-            (inner_loop _A0 _A1 tmp _i0 _i1 _dim)
+        (and 
+            (ite 
+                (< _i0 (- _dim 1))
+                (and
+                    (inner_loop _A0 _A1 tmp _i0 _i1 _dim)
+                    (= _i1 (+ _i0 1))
+                )
+                (= _j1 (+ _j0 1))
+            )
             (= _j1 (+ _j0 1))
         )
         (and
-            (= _j1 _j0) ;(= _j1 (+ _j0 1))
+            (= _j1 (+ _j0 1))
             (= _A1 _A0)
         )
     )
@@ -135,10 +132,14 @@
     )
 )
 
-; post condition
-(assert (not (check l4)))
+(push)
+(assert (not (check l4))) ; post condition
+(check-sat) ; `unsat` expected
+(pop)
 
-; `unsat` expected
-(check-sat)
-(get-model)
+(assert (check l4))
+(check-sat) ; `sat` expected
+(echo "Reversed list:")
+(eval l4) ; prints the ordered (reversed) list
+
 (exit)
