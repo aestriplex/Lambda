@@ -23,7 +23,7 @@
 // }
 
 var f2 = (tmp) => {
-    var k ;
+    var k =9;
     //var a = 7;
     var b = 3;
     // var m = [15,67];

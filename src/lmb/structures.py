@@ -419,6 +419,7 @@ class Expression(Exe) :
             if type(self._second) == Variable :
                 second_label = ctx.get_label(self._second.get_name(),Label.prev)
                 self._second.set_label(second_label)
+                #ctx.set_type(self._first.get_name(),ctx.get_type(f"{self._first}"))
                 second = self._second
             elif type(self._second) == Value :
                 second = self._second #.get_val()
