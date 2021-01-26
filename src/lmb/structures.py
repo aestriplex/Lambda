@@ -211,7 +211,7 @@ class Value(Exe) :
         self._constraints = []
 
     def __str__(self) -> str :
-        return f"<Value ({type(self._content).__name__})>"
+        return f"{self._content}"
 
     def __repr__(self) -> str :
         return f"<Value ({type(self._content).__name__}) at {hex(id(self))}>"
@@ -260,10 +260,10 @@ class Expression(Exe) :
         return f"<Expr {self._operator} ({self._kind.name}) at {hex(id(self))}>"
 
     def get_first(self) -> str :
-        return self._first.get_name()
+        return str(self._first)
 
     def get_second(self) -> str :
-        return self._second.get_name()
+        return str(self._second)
 
     def get_operator(self) -> str :
         return self._operator
@@ -419,6 +419,7 @@ class Expression(Exe) :
             if type(self._second) == Variable :
                 second_label = ctx.get_label(self._second.get_name(),Label.prev)
                 self._second.set_label(second_label)
+                #ctx.set_type(self._first.get_name(),ctx.get_type(f"{self._first}"))
                 second = self._second
             elif type(self._second) == Value :
                 second = self._second #.get_val()
@@ -642,7 +643,7 @@ class Variable(Exe) :
         self._label = None
 
     def __str__(self) -> str :
-        return f"<Var {self._name}>"
+        return f"{self._name}"
 
     def __repr__(self) -> str :
         return f"<Var {self._name} at {hex(id(self))}>"

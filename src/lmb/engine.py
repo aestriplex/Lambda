@@ -1,5 +1,5 @@
 from typing import Any
-from z3 import And, Solver, sat, unsat
+from z3 import And, Not, Solver, sat, unsat
 from enum import Enum
 from .options import Language
 from .parser.compiler import Compiler
@@ -90,6 +90,11 @@ class Lambda :
         self._build_calls(self._entry_point.get_list())
 
     def set_entry_point(self, block_name: str = None) -> None :
+        """
+        By default the entry point is the whole source.
+
+        You can set a local entry point by passing it the name of a function
+        """
         if block_name is not None :
             blocks = [e for e in self._body.get_list() if self._is_main(e)]
             for e in blocks :
@@ -100,33 +105,44 @@ class Lambda :
             if self._scope == Scope.full :
                 raise InvalidEntryPointException()
 
-    def check(self) -> Runtime :
-        runtime = Runtime()
-        if self._mode == Mode.detect_unreachable :
-            body = []
-            for e in self._entry_point.get_list() :
-                if type(e) == Fun :
-                    for b in e.get_body() :
-                        if type(b) == Conditional :
-                            self._solver.add(And(*body))
-                            self._solver.push()
-                            post = b.get_test_constraint()
-                            self._solver.add(post)
-                            res = self._solver.check()
-                            if res == sat :
-                                runtime.add_to_result(b.get_test(), Outcome.ok)
-                            else :
-                                runtime.add_to_result(b.get_test(), Outcome.detected)
-                            #print(self._solver.check())
-                            #print(self._solver.to_smt2())
-                            self._solver.pop()
-                            body += b.get_constraints()
-                        else :
-                            if type(b) != Fun :
-                                body += b.get_constraints()
+    def _add_to_solver(self, element: Exe, body: list, runtime: Runtime) -> None :
+        if type(element) == Conditional :
+            self._solver.add(And(*body))
+            self._solver.push()
+            post = element.get_test_constraint()
+            self._solver.add(post)
+            res = self._solver.check()
+            if res == unsat :
+                runtime.add_to_result(element.get_test(), Outcome.unreachable)
+            else :
+                self._solver.pop()
+                self._solver.push()
+                self._solver.add(Not(post))
+                if self._solver.check() == unsat :
+                    runtime.add_to_result(element.get_test(), Outcome.useless)
+                else :
+                    runtime.add_to_result(element.get_test(), Outcome.ok)
+            self._solver.pop()
+            body += element.get_constraints()
+        elif type(element) != Fun :
+            body += element.get_constraints()
 
+    def _detect_unreachable(self) -> Runtime :
+        runtime = Runtime()
+        body = []
+        for e in self._entry_point.get_list() :
+            if type(e) == Fun :
+                for b in e.get_body() :
+                    self._add_to_solver(b, body, runtime)
+            else :
+                self._add_to_solver(e, body, runtime)
+        return runtime
+
+    def check(self) -> Runtime :
+        if self._mode == Mode.detect_unreachable :
+            runtime = self._detect_unreachable()
         elif self._mode == Mode.post_conditions :
-            pass
+            runtime = Runtime()
 
         return runtime.get_result()
 

@@ -92,6 +92,13 @@ class Context() :
 
         return self._types[label]
 
+    def set_type(self, occurrence: str, type: Any) :
+        if occurrence not in self._occurrencies or\
+            occurrence not in self._types:
+            raise VariableMissingException(occurrence)
+
+        self._types[occurrence] = type
+
     def set_parent(self, parent: Context) -> None :
         self._parent = parent
 

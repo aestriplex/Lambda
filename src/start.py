@@ -11,4 +11,3 @@ l.build()
 #print(l.get_equation())
 for a in l.check() :
     print(a)
-end = "end"
