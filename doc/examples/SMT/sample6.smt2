@@ -94,7 +94,7 @@
     )
 )
 
-; the function b which we can check if the array is ordered
+; the function by which we can check if the array is ordered
 (define-fun-rec check ((_l (List Int))) Bool
     (ite 
         (= _l nil)
@@ -132,14 +132,6 @@
     )
 )
 
-(push)
 (assert (not (check l4))) ; post condition
-(check-sat) ; `unsat` expected
-(pop)
-
-(assert (check l4))
 (check-sat) ; `sat` expected
-(echo "Reversed list:")
-(eval l4) ; prints the ordered (reversed) list
-
 (exit)
