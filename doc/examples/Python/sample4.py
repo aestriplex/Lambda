@@ -1,5 +1,5 @@
 """ 
-    File name:    Sample4.smt2
+    File name:    Sample4.py
 
     Copyright (c) May, 2020 - Matteo Nicoli
 

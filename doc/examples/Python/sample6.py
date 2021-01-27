@@ -1,5 +1,5 @@
 """
-    File name:    Sample6.smt2
+    File name:    Sample6.py
 
     BUBBLESORT  -  Copyright (c) June, 2020 - Matteo Nicoli
 

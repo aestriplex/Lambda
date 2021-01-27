@@ -110,6 +110,8 @@ class Parser :
                     v.append(self._parse_block_fun(d.init))
                 else :
                     v.append(self._parse_block_variable(d,kind))
+            else :
+                pass
         return v
     
     def _get_call_name(self, obj: str, member: str) :

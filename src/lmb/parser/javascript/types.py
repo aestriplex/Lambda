@@ -18,15 +18,19 @@ class EsprimaTypes() :
     declarator = ["VariableDeclarator","ObjectDeclarator"]
 
 update_operators = ["+=", "-=", "*=", "/=", "&=", "|="]
+
+class Types(Enum) :
+    null      = 0x00
+    undefined = 0x01
     
 class VarKind(Enum) :
-    var = 0
-    const = 1
+    var   = 0x00
+    const = 0x01
 
 class LoopKind(Enum) :
-    for_loop = 0
-    while_loop = 1
-    do_while_loop = 2
+    for_loop      = 0x00
+    while_loop    = 0x01
+    do_while_loop = 0x02
 
 class CallType :
     identifier = "Identifier"
