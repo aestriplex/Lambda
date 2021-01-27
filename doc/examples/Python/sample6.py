@@ -42,10 +42,7 @@ def check(variables, Ar, dim) :
         yield variables[e] == Select(Ar,e)
 
 def mk_post_condition(values) :
-    condition = []
-    for v1,v2 in zip(values,values[1:]) :
-        condition.append(v1 <= v2)
-    return And(*condition)
+    return And(*[v1 <= v2 for v1,v2 in zip(values,values[1:])])
 
 dim = int(input("size of the array: "))
 
