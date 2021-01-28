@@ -3,7 +3,7 @@ import time
 from typing import Generator, Any
 from lmb.structures import Call, Expression, Conditional, Iteration, Fun, Variable, Body, Array, Object, Value
 from .types import EsprimaTypes, VarKind, VarType, LoopKind, update_operators, CallType
-from lmb.options import ExprKind
+from lmb.options import ExprKind, Types
 from lmb.exceptions import KindTypeException
 
 class Parser :
@@ -111,7 +111,7 @@ class Parser :
                 else :
                     v.append(self._parse_block_variable(d,kind))
             else :
-                pass
+                v.append(Variable(d.id.name,VarKind.var,Types.undefined))
         return v
     
     def _get_call_name(self, obj: str, member: str) :

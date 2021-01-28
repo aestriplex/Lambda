@@ -5,7 +5,7 @@ from abc import ABC, abstractmethod
 from .exceptions import VarTypeException, UnsupportedTypeException, BaseTypeException, IncosistentTypeExpression
 from .context import Context, Label
 from .utils import remove_ctx_index, remove_var_name, get_z3_type
-from .options import ExprKind
+from .options import ExprKind, Types
 from typing import Any, Generator
 from z3 import z3, And, Or, If, Int, Real, String, IntVal, RealVal, StringVal, ExprRef, BoolRef
 

@@ -7,3 +7,7 @@ class ExprKind(Enum) :
     binary     = 0x00
     assignment = 0x01
     update     = 0x02
+
+class Types(Enum) :
+    null      = 0x00
+    undefined = 0x01
