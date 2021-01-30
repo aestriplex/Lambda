@@ -2,7 +2,7 @@ import esprima
 import time
 from typing import Generator, Any
 from lmb.structures import Call, Expression, Conditional, Iteration, Fun, Variable, Body, Array, Object, Value
-from .types import EsprimaTypes, VarKind, VarType, LoopKind, update_operators, CallType
+from .types import EsprimaTypes, VarKind, VarType, LoopKind, update_operators, CallType, undefined
 from lmb.options import ExprKind, Types
 from lmb.exceptions import KindTypeException
 
@@ -33,6 +33,8 @@ class Parser :
         return Variable(name,kind,value)
 
     def _get_var_value(self, src: esprima.nodes) :
+        if src.init is None :
+            return Value(src.id.name, undefined())
         if src.init.type == VarType.literal :
             return Value(src.id.name, src.init.value)
         if src.init.type == VarType.obj :
@@ -86,6 +88,8 @@ class Parser :
             return VarKind.var
         if k == "const" :
             return VarKind.const
+        if k == VarType.identifier:
+            return ExprKind.binary
         if k == EsprimaTypes.bin_expr :
             return ExprKind.binary
         if k == EsprimaTypes.up_expr :
@@ -104,14 +108,14 @@ class Parser :
     def _get_variables(self, declarations, kind) :
         v = []
         for d in declarations :
-            if d.init is not None :
-                if d.init.type in EsprimaTypes.fun_expr :
-                    d.init.id = d.id
-                    v.append(self._parse_block_fun(d.init))
-                else :
-                    v.append(self._parse_block_variable(d,kind))
+            # if d.init is not None :
+            if d.init is not None and d.init.type in EsprimaTypes.fun_expr :
+                d.init.id = d.id
+                v.append(self._parse_block_fun(d.init))
             else :
-                v.append(Variable(d.id.name,VarKind.var,Types.undefined))
+                v.append(self._parse_block_variable(d,kind))
+            # else :
+            #     v.append(Variable(d.id.name,VarKind.var,Types.undefined))
         return v
     
     def _get_call_name(self, obj: str, member: str) :
@@ -178,7 +182,12 @@ class Parser :
             first, second = self._get_expr_components(src.left, src.right)
             operator = src.operator
         elif kind == ExprKind.binary :
-            if src.right.type == EsprimaTypes.bin_expr and \
+            if src.right is None and src.left is None :
+                operator = "&&"
+                first = Expression(ExprKind.binary,"!=",Variable(src.name),Value(src.name,undefined()))
+                # TODO sostituire null
+                second = Expression(ExprKind.binary,"!=",Variable(src.name),Value(src.name,undefined()))
+            elif src.right.type == EsprimaTypes.bin_expr and \
                 src.left.type == EsprimaTypes.bin_expr :
                 operator = src.operator
                 first = self._parse_block_expr(src.left)

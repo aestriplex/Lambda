@@ -18,6 +18,14 @@ class EsprimaTypes() :
     declarator = ["VariableDeclarator","ObjectDeclarator"]
 
 update_operators = ["+=", "-=", "*=", "/=", "&=", "|="]
+
+class undefined : 
+
+    def __init__(self) :
+        self._type = "undefined"
+
+    def __str(self) :
+        return "undefined"
     
 class VarKind(Enum) :
     var   = 0x00

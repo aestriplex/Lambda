@@ -661,5 +661,7 @@ class Variable(Exe) :
         return self._value.get_constraints()
 
     def to_ssa(self, ctx: Context, parent_label: str = None) :
+        # if self._value == Types.undefined :
+        #     pass
         if self._value is not None :
             self._value.to_ssa(ctx)
