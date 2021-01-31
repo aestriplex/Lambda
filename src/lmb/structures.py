@@ -458,7 +458,7 @@ class Expression(Exe) :
                 if self._second.get_value() is not None :
                     second_type = type(self._second.get_value().get_val())
                 else :
-                    second_type = None
+                    second_type = ctx.get_type(self._second.get_name())
             elif type(self._second) == Value :
                 second = self._second #.get_val()
                 second_type = type(self._second.get_val())

@@ -74,7 +74,7 @@ class Context() :
                 self._types.update({occurrence : _type})
         else :
             self._occurrencies[occurrence] += 1
-            if self._types[occurrence] != _type :
+            if _type is not None and self._types[occurrence] != _type :
                 self._types[occurrence] = _type
     
     def add_function(self, fun: Any) -> None :
