@@ -1,8 +1,8 @@
 import esprima
 import time
 from typing import Generator, Any
-from lmb.structures import Call, Expression, Conditional, Iteration, Fun, Variable, Body, Array, Object, Value
-from .types import EsprimaTypes, VarKind, VarType, LoopKind, update_operators, CallType, undefined
+from lmb.structures import Call, Expression, Conditional, Iteration, Fun, Variable, Body, Array, Object, Value, undefined
+from .types import EsprimaTypes, VarKind, VarType, LoopKind, update_operators, CallType
 from lmb.options import ExprKind, Types
 from lmb.exceptions import KindTypeException
 

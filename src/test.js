@@ -1,6 +1,5 @@
 var f2 = (tmp) => {
     var a;
-    var b;
     if(a){
         a = 1;
     }

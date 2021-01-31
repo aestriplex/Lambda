@@ -1,16 +1,9 @@
 from typing import Callable
-from z3 import z3, Int, Real, String
+from z3 import z3, Int, Real, String, Const
+from .exceptions import InconsistentTypeAssignment
 
 remove_ctx_index = r"\_[0-9]"
 remove_var_name = r".*\_"
-
-def get_z3_type(name: str, t: object) -> z3 :
-    if t == int :
-        return Int(name)
-    elif t == float :
-        return Real(name)
-    elif t == str :
-        return String(name)
 
 def group(func: Callable, iterable: list) -> list :
     groups = {}
@@ -63,5 +56,26 @@ def merge_any_dict(first: dict, second: dict) -> dict :
     for k in second :
         if k not in first :
             out[k] = second[k] if k not in out else first[k]
+               
+    return out
+
+def merge_types_dict(first: dict, second: dict) -> dict :
+    """
+    Merge the two dictionaries and raise an exception (InconsistentTypeAssignment) 
+    if the type of the variables are different
+    """
+    out = {}
+    for k in first :
+        if k not in second :
+            out[k] = first[k]
+        elif first[k] != second[k] :
+            raise InconsistentTypeAssignment(f"{k} ({first[k]})",f"{k} ({second[k]})")
+           
+    for k in second :
+        if k not in first :
+            if k not in out :
+                out[k] = second[k]
+        elif first[k] != second[k] :
+            raise InconsistentTypeAssignment(f"{k} ({first[k]})",f"{k} ({second[k]})")
                
     return out
