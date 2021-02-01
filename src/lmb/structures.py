@@ -7,7 +7,7 @@ from .context import Context, Label
 from .utils import remove_ctx_index, remove_var_name
 from .options import ExprKind, Types
 from typing import Any, Generator
-from z3 import z3, And, Or, If, Int, Real, String, IntVal, RealVal, StringVal, ExprRef, BoolRef, Datatype, Const
+from z3 import z3, And, Or, Not, If, Int, Real, String, IntVal, RealVal, StringVal, ExprRef, BoolRef, Datatype, Const
 
 _ANONYMOUS = "Anonymous"
 Undefined = None
@@ -19,6 +19,14 @@ class undefined :
 
     def __str__(self) :
         return "undefined"
+
+class null : 
+
+    def __init__(self) :
+        self._type = "null"
+
+    def __str__(self) :
+        return "null"
 
 def set_global_datatypes() :
     global Undefined
@@ -291,7 +299,10 @@ class Expression(Exe) :
         self._constraints = []
 
     def __str__(self) -> str :
-        return f"({self._first} {self._operator} {self._second})"
+        if self._second is None :
+            return f"{self._operator} {self._first}"
+        else :
+            return f"({self._first} {self._operator} {self._second})"
 
     def __repr__(self) -> str :
         return f"<Expr {self._operator} ({self._kind.name}) at {hex(id(self))}>"
@@ -309,7 +320,9 @@ class Expression(Exe) :
         return f"{self._first} {self._operator} {self._second}"
 
     def _get_z3_operator(self, first: z3, second: z3, op: str) -> BoolRef :
-        if op == "+" :  
+        if op == "!" :
+            return Not(first)
+        elif op == "+" :  
             return first + second
         elif op == "-" :  
             return first - second
@@ -322,8 +335,14 @@ class Expression(Exe) :
         elif op == "%" :  
             return first % second
         elif op == "==" :
+            if first.sort() == Undefined or\
+                second.sort() == Undefined :
+                return first.sort() == second.sort()
             return first == second
         elif op == "!=" :
+            if first.sort() == Undefined or\
+               second.sort() == Undefined :
+                return first.sort() != second.sort()
             return first != second
         elif op == "&&" :  
             return And(first,second)
@@ -339,7 +358,9 @@ class Expression(Exe) :
             return first >= second
     
     def _get_compound_value(self, first: Any, second: Any, op: str) -> Any :
-        if op == "+" :  
+        if op == "!" :
+            return Not(first)
+        elif op == "+" :  
             return first + second
         elif op == "-" :  
             return first - second
@@ -395,9 +416,11 @@ class Expression(Exe) :
             f = get_z3_type(first,t_f)
             return [f == second]
 
-    def _check_consistency(self, t1: Any, t2: Any) -> None :
+    def _check_consistency(self, t1: Any, t2: Any, op: str) -> None :
         if t1 != t2 :
-            raise InconsistentTypeExpression(self)
+            if t1 != undefined and t2 != undefined and \
+               (op != "==" or op != "!=") :
+                raise InconsistentTypeExpression(self)
 
     def _get_binary_variable(self, ctx: Context, var_name: str) -> z3 :
         t_second = ctx.get_type(var_name)
@@ -427,7 +450,7 @@ class Expression(Exe) :
                     second = self._get_binary_variable(ctx,self._second.get_name())
                 elif type(self._second) == Value :
                     t_second = type(self._second.get_val())
-                    self._check_consistency(t_first,t_second)
+                    self._check_consistency(t_first,t_second,self._operator)
                     second = get_z3_value(self._second.get_val())
                 elif type(self._second) == Expression :
                     self._second.to_ssa(ctx)
@@ -437,9 +460,9 @@ class Expression(Exe) :
                 t_first = type(self._first.get_val())
                 if type(self._second) == Variable :
                     second = self._get_binary_variable(ctx,self._second.get_name())
-                    self._check_consistency(t_first,t_second)
+                    self._check_consistency(t_first,t_second,self._operator)
                 elif type(self._second) == Value :
-                    self._check_consistency(type(self._first),type(self._second))
+                    self._check_consistency(type(self._first),type(self._second),self._operator)
                     second = get_z3_value(self._second.get_val())
                 elif type(self._second) == Expression :
                     self._second.to_ssa(ctx)
@@ -465,6 +488,13 @@ class Expression(Exe) :
             ctx.add(self._first.get_name(),second_type)
             first = ctx.get_label(self._first.get_name(),Label.prev)
             self._constraints += self._make_constraint(ctx,first,second)
+        elif self._kind == ExprKind.unary :
+            if type(self._first) == Expression :
+                self._first.to_ssa(ctx)
+                first = self._first.get_constraints(ctx)[0]
+            else :
+                pass
+            self._constraints.append(self._get_z3_operator(first,None,self._operator))
 
 class Call(Exe) :
 

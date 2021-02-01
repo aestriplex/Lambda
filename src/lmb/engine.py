@@ -4,11 +4,13 @@ from enum import Enum
 from .options import Language
 from .parser.compiler import Compiler
 from .context import Context
-from .structures import Body, Exe, Fun, Call, Expression, Variable, Conditional, set_global_datatypes
+from .structures import Body, Exe, Fun, Call, Expression, Variable, Conditional, set_global_datatypes, null
 from .exceptions import InvalidEntryPointException, InvalidModeException
 from .runtime import Runtime, Mode, Outcome
 
-from pathlib import Path
+addr_map = {
+    0x00 : null()
+    }
 
 class Scope(Enum) :
     full  = 0x00

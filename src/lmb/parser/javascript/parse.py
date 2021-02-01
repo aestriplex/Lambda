@@ -102,6 +102,8 @@ class Parser :
             return LoopKind.do_while_loop
         if k == EsprimaTypes.for_statement :
             return LoopKind.for_loop
+        if k == EsprimaTypes.unary_expr :
+            return ExprKind.unary
         else :
             raise KindTypeException()
 
@@ -148,7 +150,14 @@ class Parser :
             second = Value(None, left.value)
         
         return first, second
-    
+
+    def _check_null(self, src: dict) -> Any :
+        operator = "&&"
+        first = Expression(ExprKind.binary,"!=",Variable(src.name),Value(src.name,undefined()))
+        # TODO sostituire null
+        second = Expression(ExprKind.binary,"!=",Variable(src.name),Value(src.name,undefined()))
+        return first, second, operator
+
     def _parse_block_expr(self, src: esprima.nodes) -> Expression :
         kind = self._get_kind(src.type)
         if src.operator in update_operators :
@@ -183,10 +192,7 @@ class Parser :
             operator = src.operator
         elif kind == ExprKind.binary :
             if src.right is None and src.left is None :
-                operator = "&&"
-                first = Expression(ExprKind.binary,"!=",Variable(src.name),Value(src.name,undefined()))
-                # TODO sostituire null
-                second = Expression(ExprKind.binary,"!=",Variable(src.name),Value(src.name,undefined()))
+                first, second, operator = self._check_null(src)
             elif src.right.type == EsprimaTypes.bin_expr and \
                 src.left.type == EsprimaTypes.bin_expr :
                 operator = src.operator
@@ -209,7 +215,14 @@ class Parser :
             else:
                 first, second = self._get_expr_components(src.left, src.right)
                 operator = src.operator
-        
+        elif kind == ExprKind.unary :
+            if src.argument.type == VarType.identifier :
+                # first, second, operator = self._check_null(src.argument)
+                second = None
+                operator = "!"
+                first = self._parse_block_expr(src.argument)
+            else :
+                pass
         return Expression(kind,operator,first,second)
 
     def _parse_block_fun(self, src) :

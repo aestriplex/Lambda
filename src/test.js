@@ -1,8 +1,8 @@
 var f2 = (tmp) => {
-    // var a;
-    // if(a){
-    //     a = 1;
-    // }
+    var a;
+    if(a){
+        a = 1;
+    }
     var k;
     var a = 7;
     var b = 3;
@@ -10,7 +10,9 @@ var f2 = (tmp) => {
     var d = {a : 1,b:8};
     k = b;
     var s = "ciao";
-    
+    if(!k){
+        k = 3;
+    }
     if(k<2) {
         k = (b+2)*3;
         b = a;

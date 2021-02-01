@@ -6,6 +6,7 @@ class EsprimaTypes() :
     call = "CallExpression"
     up_expr = "UpdateExpression"
     bin_expr = "BinaryExpression"
+    unary_expr = "UnaryExpression"
     member = "MemberExpression"
     ass_expr = "AssignmentExpression"
     cond_expr = "IfStatement"
@@ -13,7 +14,7 @@ class EsprimaTypes() :
     while_statement = "WhileStatement"
     do_while_statement = "DoWhileStatement"
     fun_declaration = "FunctionDeclaration"
-    generic_expression = ["UpdateExpression", "AssignmentExpression", "BinaryExpression"]
+    generic_expression = ["UpdateExpression", "AssignmentExpression", "BinaryExpression", "UnaryExpression"]
     fun_expr = ["FunctionExpression","ArrowFunctionExpression"]
     declarator = ["VariableDeclarator","ObjectDeclarator"]
 
