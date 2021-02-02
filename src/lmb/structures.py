@@ -300,8 +300,11 @@ class Expression(Exe) :
 
     def __str__(self) -> str :
         if self._second is None :
-            return f"{self._operator} {self._first}"
+            return f"{self._operator}{self._first}"
         else :
+            if type(self._first) != Expression and \
+               type(self._second) != Expression :
+               return f"{self._first} {self._operator} {self._second}"
             return f"({self._first} {self._operator} {self._second})"
 
     def __repr__(self) -> str :
@@ -315,9 +318,6 @@ class Expression(Exe) :
 
     def get_operator(self) -> str :
         return self._operator
-
-    def get_expr_str(self) -> str :
-        return f"{self._first} {self._operator} {self._second}"
 
     def _get_z3_operator(self, first: z3, second: z3, op: str) -> BoolRef :
         if op == "!" :
