@@ -3,8 +3,8 @@ import re
 import sys
 from typing import Any
 from enum import Enum
-from .utils import remove_ctx_index, merge_int_dict_max, merge_any_dict
-from .exceptions import VariableMissingException, ImplicitlyTypedException
+from .utils import remove_ctx_index, merge_int_dict_max, merge_any_dict, merge_types_dict
+from .exceptions import VariableMissingException, ImplicitlyTypedException, InconsistentTypeAssignment
 
 class Label(Enum) :
     """
@@ -74,6 +74,8 @@ class Context() :
                 self._types.update({occurrence : _type})
         else :
             self._occurrencies[occurrence] += 1
+            if _type is not None and self._types[occurrence] != _type :
+                self._types[occurrence] = _type
     
     def add_function(self, fun: Any) -> None :
         name = fun.get_name()

@@ -33,7 +33,7 @@ class Runtime :
         return "\n".join([f"{self._get_var_label(m.name())} {model[m]}" for m in model])
     
     def add_to_result(self, condition: Expression, outcome: Outcome, model: ModelRef = None) -> None :
-        self._result.append([condition.get_expr_str(), outcome.name, self._model_to_str(model)])
+        self._result.append([str(condition), outcome.name, self._model_to_str(model)])
     
     def get_result(self) -> Result :
         """

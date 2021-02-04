@@ -1,14 +1,16 @@
 from typing import Any
-from z3 import And, Not, Solver, sat, unsat
+from z3 import And, Not, Solver, sat, unsat, Datatype, Const
 from enum import Enum
 from .options import Language
 from .parser.compiler import Compiler
 from .context import Context
-from .structures import Body, Exe, Fun, Call, Expression, Variable, Conditional
+from .structures import Body, Exe, Fun, Call, Expression, Variable, Conditional, set_global_datatypes, null
 from .exceptions import InvalidEntryPointException, InvalidModeException
 from .runtime import Runtime, Mode, Outcome
 
-from pathlib import Path
+addr_map = {
+    0x00 : null()
+    }
 
 class Scope(Enum) :
     full  = 0x00
@@ -23,6 +25,7 @@ class Lambda :
                 lang: Language, 
                 mode: Mode = None, 
                 uninterpreted: list = None) -> None :
+        set_global_datatypes()
         comp = Compiler(src, lang)
         self._body = comp.get_compiled_source()
         self._solver = Solver()
@@ -37,6 +40,8 @@ class Lambda :
 
     def get_equation(self) -> And :
         """
+        For debug purposes.
+
         It returns the Z3 object corresponding to the SSA translation of the program
         """
         return And(*self.get_constraints())

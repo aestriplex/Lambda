@@ -63,11 +63,16 @@ class BaseTypeException(Exception) :
     def __init__(self, var) :
         super().__init__(f"Base type must be a either a Variable or a Value, not a {type(var)}.")
 
-class IncosistentTypeExpression(Exception) :
+class InconsistentTypeExpression(Exception) :
 
     def __init__(self, expr) :
         expr_str = f"{expr.get_first()} {expr.get_operator()} {expr.get_second()}"
         super().__init__(f"In expression `{expr_str}` types are incostistent.")
+
+class InconsistentTypeAssignment(Exception) :
+
+    def __init__(self, first, second) :
+        super().__init__(f"`{first}` and `{second}` assignments are inconsistent.")
 
 class InvalidModeException(Exception) :
 
