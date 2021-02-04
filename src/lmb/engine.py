@@ -4,7 +4,7 @@ from enum import Enum
 from .options import Language
 from .parser.compiler import Compiler
 from .context import Context
-from .structures import Body, Exe, Fun, Call, Expression, Variable, Conditional, set_global_datatypes, init_addr_map
+from .structures import Body, Exe, Fun, Call, Expression, Variable, Conditional, set_global_datatypes
 from .exceptions import InvalidEntryPointException, InvalidModeException
 from .runtime import Runtime, Mode, Outcome
 
@@ -22,7 +22,6 @@ class Lambda :
                 mode: Mode = None, 
                 uninterpreted: list = None) -> None :
         set_global_datatypes()
-        init_addr_map()
         comp = Compiler(src, lang)
         self._body = comp.get_compiled_source()
         self._solver = Solver()

@@ -12,7 +12,7 @@ from z3 import z3, And, Or, Not, If, Int, Real, String, IntVal, RealVal, StringV
 
 _ANONYMOUS = "Anonymous"
 Undefined = None
-addr_map = {}
+addr_map = MemoryMap()
 
 class undefined : 
 
@@ -35,10 +35,6 @@ def set_global_datatypes() :
     Undefined = Datatype('Undefined')
     Undefined.declare('not_defined')
     Undefined = Undefined.create()
-
-def init_addr_map() :
-    global addr_map
-    addr_map = MemoryMap()
 
 def get_z3_value(value: object) -> z3 :
     if type(value) == int :
@@ -174,6 +170,7 @@ class Pointer(Exe) :
     def __init__(self, addr: str, label: str) -> None :
         self._addr = addr
         self._label = label
+        self._constraints = []
 
     def __str__(self) -> str :
         return f""
@@ -185,15 +182,17 @@ class Pointer(Exe) :
         return self._addr
 
     def get_value(self) -> Any:
-        if self._addr in addr_map :
-            return addr_map[self._addr]
-        raise NullPointerException(self._label)
+        return addr_map.get(self._addr)
 
     def get_constraints(self, ctx: Context = None) -> list :
-        ...
+        return self._constraints
     
     def to_ssa(self, ctx: Context, parent_label: str = None) -> None :
-        ...
+        ctx.add(self._label,type(addr_map.get(self._addr)))
+        lbl = ctx.get_label(self._label,Label.prev)
+        self._constraints.append()
+        end = "end"
+
 
 class Array(Exe) :
 

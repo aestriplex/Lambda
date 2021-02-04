@@ -39,11 +39,10 @@ class Parser :
             return Variable(name, kind, Value(src.id.name, src.init.value))
         if src.init.type == VarType.obj :
             value = self._parse_block_object(src.init.properties)
-            # addr = addr_map.add(value)
-            # return Pointer(addr,src.id.name) # Object(src.id.name,value)
+            addr = addr_map.add(Object(None,value))
         if src.init.type == VarType.array :
             value = self._parse_block_array(src.init.elements)
-        addr = addr_map.add(value)
+            addr = addr_map.add(Array(None,value))
         return Pointer(addr,src.id.name)
 
 

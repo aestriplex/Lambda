@@ -1,4 +1,5 @@
 from typing import Any
+from .exceptions import SegmentationFaultException
 
 class MemoryMap :
     """
@@ -24,3 +25,8 @@ class MemoryMap :
         address = self._next_addr()
         self._map[address] = value
         return address
+    
+    def get(self, addr: str) -> Any :
+        if addr not in self._map :
+            raise SegmentationFaultException(addr)
+        return self._map[addr]

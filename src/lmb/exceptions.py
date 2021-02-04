@@ -83,3 +83,8 @@ class NullPointerException(Exception) :
 
     def __init__(self, lbl: str) :
         super().__init__(f"The variable `{lbl}` is not allocated.")
+
+class SegmentationFaultException(Exception) :
+
+    def __init__(self, addr: str) :
+        super().__init__(f"The address `{addr}` isn't allocated.")
