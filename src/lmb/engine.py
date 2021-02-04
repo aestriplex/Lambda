@@ -40,6 +40,8 @@ class Lambda :
 
     def get_equation(self) -> And :
         """
+        For debug purposes.
+
         It returns the Z3 object corresponding to the SSA translation of the program
         """
         return And(*self.get_constraints())
