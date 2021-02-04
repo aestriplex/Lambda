@@ -78,3 +78,8 @@ class InvalidModeException(Exception) :
 
     def __init__(self) :
         super().__init__(f"You cannot set a post-condition in ``detect unreachable`` mode.")
+
+class NullPointerException(Exception) :
+
+    def __init__(self, lbl: str) :
+        super().__init__(f"The variable `{lbl}` is not allocated.")

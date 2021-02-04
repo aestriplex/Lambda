@@ -1,7 +1,7 @@
 import esprima
 import time
 from typing import Generator, Any
-from lmb.structures import Call, Expression, Conditional, Iteration, Fun, Variable, Body, Array, Object, Value, undefined
+from lmb.structures import Call, Expression, Conditional, Iteration, Fun, Variable, Body, Array, Object, Value, undefined, Pointer, addr_map
 from .types import EsprimaTypes, VarKind, VarType, LoopKind, update_operators, CallType
 from lmb.options import ExprKind, Types
 from lmb.exceptions import KindTypeException
@@ -29,20 +29,41 @@ class Parser :
     def _parse_block_variable(self, src, kind) :
         kind = self._get_kind(kind)
         name = src.id.name
-        value = self._get_var_value(src)
+        value = self._get_var_value(src, kind, name)
         return Variable(name,kind,value)
 
-    def _get_var_value(self, src: esprima.nodes) :
+    def _get_var_value(self, src: esprima.nodes, kind: Any, name: str) :
         if src.init is None :
-            return Value(src.id.name, undefined())
+            return Variable(name, kind, Value(src.id.name, undefined()))
         if src.init.type == VarType.literal :
-            return Value(src.id.name, src.init.value)
+            return Variable(name, kind, Value(src.id.name, src.init.value))
         if src.init.type == VarType.obj :
             value = self._parse_block_object(src.init.properties)
-            return Object(src.id.name,value)
+            # addr = addr_map.add(value)
+            # return Pointer(addr,src.id.name) # Object(src.id.name,value)
         if src.init.type == VarType.array :
             value = self._parse_block_array(src.init.elements)
-            return Array(src.id.name,value)
+        addr = addr_map.add(value)
+        return Pointer(addr,src.id.name)
+
+
+    # def _parse_block_variable(self, src, kind) :
+    #     kind = self._get_kind(kind)
+    #     name = src.id.name
+    #     value = self._get_var_value(src)
+    #     return Variable(name,kind,value)
+
+    # def _get_var_value(self, src: esprima.nodes) :
+    #     if src.init is None :
+    #         return Value(src.id.name, undefined())
+    #     if src.init.type == VarType.literal :
+    #         return Value(src.id.name, src.init.value)
+    #     if src.init.type == VarType.obj :
+    #         value = self._parse_block_object(src.init.properties)
+    #         return Object(src.id.name,value)
+    #     if src.init.type == VarType.array :
+    #         value = self._parse_block_array(src.init.elements)
+    #         return Array(src.id.name,value)
 
     def _parse_block_object(self, prop: esprima.nodes) -> dict :
         obj = {}
@@ -83,7 +104,7 @@ class Parser :
         params = [a.value for a in src.arguments]
         return Call(callee,params)
 
-    def _get_kind(self, k) :
+    def _get_kind(self, k: str) -> Any :
         if k == "var" :
             return VarKind.var
         if k == "const" :

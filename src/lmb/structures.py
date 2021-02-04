@@ -2,15 +2,17 @@ from __future__ import annotations
 import re
 from enum import Enum
 from abc import ABC, abstractmethod
-from .exceptions import VarTypeException, UnsupportedTypeException, BaseTypeException, InconsistentTypeExpression
+from .exceptions import VarTypeException, UnsupportedTypeException, BaseTypeException, InconsistentTypeExpression, NullPointerException
 from .context import Context, Label
 from .utils import remove_ctx_index, remove_var_name
 from .options import ExprKind, Types
+from .memory_map import MemoryMap
 from typing import Any, Generator
 from z3 import z3, And, Or, Not, If, Int, Real, String, IntVal, RealVal, StringVal, ExprRef, BoolRef, Datatype, Const
 
 _ANONYMOUS = "Anonymous"
 Undefined = None
+addr_map = {}
 
 class undefined : 
 
@@ -33,6 +35,10 @@ def set_global_datatypes() :
     Undefined = Datatype('Undefined')
     Undefined.declare('not_defined')
     Undefined = Undefined.create()
+
+def init_addr_map() :
+    global addr_map
+    addr_map = MemoryMap()
 
 def get_z3_value(value: object) -> z3 :
     if type(value) == int :
@@ -162,6 +168,32 @@ class Block(Exe) :
 
         # self._modified = self._ctx.get_last_update_vars()
         self._modified = self._ctx.get_occurrencies()
+
+class Pointer(Exe) :
+
+    def __init__(self, addr: str, label: str) -> None :
+        self._addr = addr
+        self._label = label
+
+    def __str__(self) -> str :
+        return f""
+
+    def __repr__(self) -> str :
+        return f"<Pointer {self._addr} at ({hex(id(self))})>"
+
+    def get_addr(self) -> str :
+        return self._addr
+
+    def get_value(self) -> Any:
+        if self._addr in addr_map :
+            return addr_map[self._addr]
+        raise NullPointerException(self._label)
+
+    def get_constraints(self, ctx: Context = None) -> list :
+        ...
+    
+    def to_ssa(self, ctx: Context, parent_label: str = None) -> None :
+        ...
 
 class Array(Exe) :
 
