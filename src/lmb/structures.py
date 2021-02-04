@@ -2,7 +2,7 @@ from __future__ import annotations
 import re
 from enum import Enum
 from abc import ABC, abstractmethod
-from .exceptions import VarTypeException, UnsupportedTypeException, BaseTypeException, InconsistentTypeExpression, NullPointerException
+from .exceptions import VarTypeException, UnsupportedTypeException, BaseTypeException, InconsistentTypeExpression
 from .context import Context, Label
 from .utils import remove_ctx_index, remove_var_name
 from .options import ExprKind, Types
@@ -11,30 +11,15 @@ from typing import Any, Generator
 from z3 import z3, And, Or, Not, If, Int, Real, String, IntVal, RealVal, StringVal, ExprRef, BoolRef, Datatype, Const
 
 _ANONYMOUS = "Anonymous"
-Undefined = None
+GlobalType = None
 addr_map = MemoryMap()
 
-class undefined : 
-
-    def __init__(self) :
-        self._type = "undefined"
-
-    def __str__(self) :
-        return "undefined"
-
-class null : 
-
-    def __init__(self) :
-        self._type = "null"
-
-    def __str__(self) :
-        return "null"
-
 def set_global_datatypes() :
-    global Undefined
-    Undefined = Datatype('Undefined')
-    Undefined.declare('not_defined')
-    Undefined = Undefined.create()
+    global GlobalType
+    GlobalType = Datatype('GlobalType')
+    GlobalType.declare('undefined')
+    GlobalType.declare('null')
+    GlobalType = GlobalType.create()
 
 def get_z3_value(value: object) -> z3 :
     if type(value) == int :
@@ -44,7 +29,7 @@ def get_z3_value(value: object) -> z3 :
     elif type(value) == str :
         return StringVal(value)
     elif type(value) == undefined :
-        return Undefined.not_defined
+        return GlobalType.undefined
 
 def get_z3_type(name: str, t: object) -> z3 :
     if t == int :
@@ -54,7 +39,7 @@ def get_z3_type(name: str, t: object) -> z3 :
     elif t == str :
         return String(name)
     elif t == undefined :
-        return Const(name,Undefined)
+        return Const(name,GlobalType)
 
 class BlockType(Enum) :
     generic = 0x00
@@ -68,6 +53,31 @@ class Exe(ABC) :
 
     @abstractmethod
     def to_ssa(self, ctx: Context, parent_label: str = None) : ...
+
+class undefined : 
+
+    def __init__(self) :
+        self._type = "undefined"
+
+    def __str__(self) :
+        return "undefined"
+
+class null(Exe) : 
+
+    def __init__(self) :
+        self._type = "null"
+        self._constraints = []
+
+    def __str__(self) :
+        return "null"
+    
+    def get_constraints(self, ctx: Context = None) -> list :
+        return self._constraints
+
+    def to_ssa(self, ctx: Context, parent_label: str = None) :
+        ctx.add(parent_label,type(self))
+        lbl = ctx.get_label(parent_label,Label.prev)
+        self._constraints.append(Const(lbl, GlobalType) == GlobalType.null)
 
 class Body() :
 
@@ -170,7 +180,7 @@ class Pointer(Exe) :
     def __init__(self, addr: str, label: str) -> None :
         self._addr = addr
         self._label = label
-        self._constraints = []
+        self._constraints = [] # only used in case of null
 
     def __str__(self) -> str :
         return f""
@@ -185,14 +195,19 @@ class Pointer(Exe) :
         return addr_map.get(self._addr)
 
     def get_constraints(self, ctx: Context = None) -> list :
+        val = addr_map.get(self._addr)
+        if val is not None :
+            return addr_map.get(self._addr).get_constraints(ctx)
         return self._constraints
     
     def to_ssa(self, ctx: Context, parent_label: str = None) -> None :
-        ctx.add(self._label,type(addr_map.get(self._addr)))
-        lbl = ctx.get_label(self._label,Label.prev)
-        self._constraints.append()
-        end = "end"
-
+        value = addr_map.get(self._addr)
+        if value is not None :
+            value.to_ssa(ctx,self._label)
+        else :
+            ctx.add(self._label,type(null))
+            lbl = ctx.get_label(self._label,Label.prev) 
+            self._constraints.append(Const(lbl, GlobalType) == GlobalType.null)
 
 class Array(Exe) :
 
@@ -318,7 +333,7 @@ class Value(Exe) :
         elif type(self._content) == str :
             self._constraints.append(String(lbl) == StringVal(self._content))
         elif type(self._content) == undefined :
-            self._constraints.append(Const(lbl, Undefined) == Undefined.not_defined)
+            self._constraints.append(Const(lbl, GlobalType) == GlobalType.undefined)
 
 class Expression(Exe) :
 
@@ -366,13 +381,13 @@ class Expression(Exe) :
         elif op == "%" :  
             return first % second
         elif op == "==" :
-            if first.sort() == Undefined or\
-                second.sort() == Undefined :
+            if first.sort() == GlobalType or\
+                second.sort() == GlobalType :
                 return first.sort() == second.sort()
             return first == second
         elif op == "!=" :
-            if first.sort() == Undefined or\
-               second.sort() == Undefined :
+            if first.sort() == GlobalType or\
+               second.sort() == GlobalType :
                 return first.sort() != second.sort()
             return first != second
         elif op == "&&" :  

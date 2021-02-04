@@ -36,7 +36,10 @@ class Parser :
         if src.init is None :
             return Variable(name, kind, Value(src.id.name, undefined()))
         if src.init.type == VarType.literal :
-            return Variable(name, kind, Value(src.id.name, src.init.value))
+            if src.init.raw == EsprimaTypes.null :
+                return Pointer(hex(0),src.id.name) #Variable(name, kind, Value(src.id.name, src.init.value))
+            else :
+                return Variable(name, kind, Value(src.id.name, src.init.value))
         if src.init.type == VarType.obj :
             value = self._parse_block_object(src.init.properties)
             addr = addr_map.add(Object(None,value))

@@ -6,6 +6,8 @@ var f2 = (tmp) => {
     // var k;
     // var a = 7;
     // var b = 3;
+    var k = null;
+    var p = 3;
     var m = [15,67];
     var o = {a : 1,b:8};
     // var d = {a : 1,b:8};

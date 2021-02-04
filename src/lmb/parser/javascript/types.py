@@ -1,6 +1,7 @@
 from enum import Enum
 
 class EsprimaTypes() :
+    null = "null"
     var = "VariableDeclaration"
     expr = "ExpressionStatement"
     call = "CallExpression"
