@@ -2,7 +2,7 @@ import esprima
 import time
 from typing import Generator, Any
 from lmb.structures import Call, Expression, Conditional, Iteration, Fun, Variable, Body, Array, Object, Value, undefined, Pointer, addr_map
-from .types import EsprimaTypes, VarKind, VarType, LoopKind, update_operators, CallType
+from .types import EsprimaTypes, VarKind, VarType, LoopKind, update_operators, CallType, StdObjects
 from lmb.options import ExprKind, Types
 from lmb.exceptions import KindTypeException
 
@@ -33,11 +33,11 @@ class Parser :
         return Variable(name,kind,value)
 
     def _get_var_value(self, src: esprima.nodes, kind: Any, name: str) :
-        if src.init is None :
+        if src.init is None or src.init.name == StdObjects.undefined :
             return Variable(name, kind, Value(src.id.name, undefined()))
         if src.init.type == VarType.literal :
-            if src.init.raw == EsprimaTypes.null :
-                return Pointer(hex(0),src.id.name) #Variable(name, kind, Value(src.id.name, src.init.value))
+            if src.init.raw == StdObjects.null :
+                return Pointer(hex(0),src.id.name)
             else :
                 return Variable(name, kind, Value(src.id.name, src.init.value))
         if src.init.type == VarType.obj :
@@ -178,7 +178,7 @@ class Parser :
         operator = "&&"
         first = Expression(ExprKind.binary,"!=",Variable(src.name),Value(src.name,undefined()))
         # TODO sostituire null
-        second = Expression(ExprKind.binary,"!=",Variable(src.name),Value(src.name,undefined()))
+        second = Expression(ExprKind.binary,"!=",Variable(src.name),Pointer(hex(0),src.name))
         return first, second, operator
 
     def _parse_block_expr(self, src: esprima.nodes) -> Expression :

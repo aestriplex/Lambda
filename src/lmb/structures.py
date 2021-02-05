@@ -40,6 +40,8 @@ def get_z3_type(name: str, t: object) -> z3 :
         return String(name)
     elif t == undefined :
         return Const(name,GlobalType)
+    elif t == null :
+        return Const(name,GlobalType)
 
 class BlockType(Enum) :
     generic = 0x00
@@ -62,22 +64,21 @@ class undefined :
     def __str__(self) :
         return "undefined"
 
-class null(Exe) : 
+class null :
 
     def __init__(self) :
         self._type = "null"
-        self._constraints = []
 
     def __str__(self) :
         return "null"
-    
-    def get_constraints(self, ctx: Context = None) -> list :
-        return self._constraints
 
-    def to_ssa(self, ctx: Context, parent_label: str = None) :
-        ctx.add(parent_label,type(self))
-        lbl = ctx.get_label(parent_label,Label.prev)
-        self._constraints.append(Const(lbl, GlobalType) == GlobalType.null)
+    # def get_constraints(self, ctx: Context = None) -> list :
+    #     return self._constraints
+
+    # def to_ssa(self, ctx: Context, parent_label: str = None) :
+    #     ctx.add(parent_label,type(self))
+    #     lbl = ctx.get_label(parent_label,Label.prev)
+    #     self._constraints.append(Const(lbl, GlobalType) == GlobalType.null)
 
 class Body() :
 
@@ -183,7 +184,7 @@ class Pointer(Exe) :
         self._constraints = [] # only used in case of null
 
     def __str__(self) -> str :
-        return f""
+        return f"<{addr_map.get(self._addr)} at {self._addr}>"
 
     def __repr__(self) -> str :
         return f"<Pointer {self._addr} at ({hex(id(self))})>"
@@ -205,7 +206,7 @@ class Pointer(Exe) :
         if value is not None :
             value.to_ssa(ctx,self._label)
         else :
-            ctx.add(self._label,type(null))
+            ctx.add(self._label,type(null()))
             lbl = ctx.get_label(self._label,Label.prev) 
             self._constraints.append(Const(lbl, GlobalType) == GlobalType.null)
 
@@ -368,7 +369,7 @@ class Expression(Exe) :
     def _get_z3_operator(self, first: z3, second: z3, op: str) -> BoolRef :
         if op == "!" :
             return Not(first)
-        elif op == "+" :  
+        elif op == "+" :   
             return first + second
         elif op == "-" :  
             return first - second
@@ -499,6 +500,9 @@ class Expression(Exe) :
                     self._check_consistency(t_first,t_second,self._operator)
                     second = get_z3_value(self._second.get_val())
                 elif type(self._second) == Expression :
+                    self._second.to_ssa(ctx)
+                    second = self._second.get_constraints(ctx)[0]
+                elif type(self._second) == Pointer :
                     self._second.to_ssa(ctx)
                     second = self._second.get_constraints(ctx)[0]
             elif type(self._first) == Value :

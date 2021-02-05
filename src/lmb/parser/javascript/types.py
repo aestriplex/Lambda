@@ -1,7 +1,6 @@
 from enum import Enum
 
 class EsprimaTypes() :
-    null = "null"
     var = "VariableDeclaration"
     expr = "ExpressionStatement"
     call = "CallExpression"
@@ -18,6 +17,11 @@ class EsprimaTypes() :
     generic_expression = ["UpdateExpression", "AssignmentExpression", "BinaryExpression", "UnaryExpression"]
     fun_expr = ["FunctionExpression","ArrowFunctionExpression"]
     declarator = ["VariableDeclarator","ObjectDeclarator"]
+
+class StdObjects() :
+    null = "null"
+    undefined = "undefined"
+    math = "Math"
 
 update_operators = ["+=", "-=", "*=", "/=", "&=", "|="]
     
