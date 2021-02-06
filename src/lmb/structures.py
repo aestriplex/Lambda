@@ -30,6 +30,8 @@ def get_z3_value(value: object) -> z3 :
         return StringVal(value)
     elif type(value) == undefined :
         return GlobalType.undefined
+    elif value == None :
+        return GlobalType.null
 
 def get_z3_type(name: str, t: object) -> z3 :
     if t == int :
@@ -192,7 +194,7 @@ class Pointer(Exe) :
     def get_addr(self) -> str :
         return self._addr
 
-    def get_value(self) -> Any:
+    def dereference(self) -> Any:
         return addr_map.get(self._addr)
 
     def get_constraints(self, ctx: Context = None) -> list :
@@ -503,8 +505,10 @@ class Expression(Exe) :
                     self._second.to_ssa(ctx)
                     second = self._second.get_constraints(ctx)[0]
                 elif type(self._second) == Pointer :
-                    self._second.to_ssa(ctx)
-                    second = self._second.get_constraints(ctx)[0]
+                    # self._second.to_ssa(ctx)
+                    val = self._second.dereference()
+                    t_second = type(val)
+                    second = get_z3_value(val)
             elif type(self._first) == Value :
                 first = get_z3_value(self._first.get_val())
                 t_first = type(self._first.get_val())
