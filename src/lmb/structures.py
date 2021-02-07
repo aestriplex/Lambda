@@ -5,7 +5,7 @@ from abc import ABC, abstractmethod
 from .exceptions import VarTypeException, UnsupportedTypeException, BaseTypeException, InconsistentTypeExpression
 from .context import Context, Label
 from .utils import remove_ctx_index, remove_var_name
-from .options import ExprKind, Types
+from .options import ExprKind, Types, Language, Typing
 from .memory_map import MemoryMap
 from typing import Any, Generator
 from z3 import z3, And, Or, Not, If, Int, Real, String, IntVal, RealVal, StringVal, ExprRef, BoolRef, Datatype, Const
@@ -13,6 +13,7 @@ from z3 import z3, And, Or, Not, If, Int, Real, String, IntVal, RealVal, StringV
 _ANONYMOUS = "Anonymous"
 GlobalType = None
 addr_map = MemoryMap()
+global_opts = {}
 
 def set_global_datatypes() :
     global GlobalType
@@ -20,6 +21,11 @@ def set_global_datatypes() :
     GlobalType.declare('undefined')
     GlobalType.declare('null')
     GlobalType = GlobalType.create()
+
+def set_global_opts(lang: Language) -> None :
+    global global_opts
+    if lang == Language.Javascript :
+        global_opts["typing"] = Typing.weak
 
 def get_z3_value(value: object) -> z3 :
     if type(value) == int :
@@ -73,14 +79,6 @@ class null :
 
     def __str__(self) :
         return "null"
-
-    # def get_constraints(self, ctx: Context = None) -> list :
-    #     return self._constraints
-
-    # def to_ssa(self, ctx: Context, parent_label: str = None) :
-    #     ctx.add(parent_label,type(self))
-    #     lbl = ctx.get_label(parent_label,Label.prev)
-    #     self._constraints.append(Const(lbl, GlobalType) == GlobalType.null)
 
 class Body() :
 
@@ -349,15 +347,19 @@ class Expression(Exe) :
 
     def __str__(self) -> str :
         if self._second is None :
-            return f"{self._operator}{self._first}"
+            expr_str = f"{self._operator}{self._first}"
         else :
-            if type(self._first) != Expression and \
-               type(self._second) != Expression :
-               return f"{self._first} {self._operator} {self._second}"
-            return f"({self._first} {self._operator} {self._second})"
+            expr_str = f"{self._first} {self._operator} {self._second}"
+        if  self._is_expr_embedded() :
+           expr_str = f"({expr_str})"
+
+        return expr_str
 
     def __repr__(self) -> str :
         return f"<Expr {self._operator} ({self._kind.name}) at {hex(id(self))}>"
+
+    def _is_expr_embedded(self) :
+        return type(self._first) != Expression and type(self._second) != Expression
 
     def get_first(self) -> str :
         return str(self._first)
@@ -505,7 +507,6 @@ class Expression(Exe) :
                     self._second.to_ssa(ctx)
                     second = self._second.get_constraints(ctx)[0]
                 elif type(self._second) == Pointer :
-                    # self._second.to_ssa(ctx)
                     val = self._second.dereference()
                     t_second = type(val)
                     second = get_z3_value(val)

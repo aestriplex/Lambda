@@ -7,6 +7,7 @@ with open(Path(__file__).parent / "test.js","r") as f :
 l = Lambda(src, Language.Javascript)
 l.set_entry_point()
 l.build()
-print(l.get_equation())
+# print(l.get_equation())
 for a in l.check() :
     print(a)
+    

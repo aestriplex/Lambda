@@ -48,25 +48,6 @@ class Parser :
             addr = addr_map.add(Array(None,value))
         return Pointer(addr,src.id.name)
 
-
-    # def _parse_block_variable(self, src, kind) :
-    #     kind = self._get_kind(kind)
-    #     name = src.id.name
-    #     value = self._get_var_value(src)
-    #     return Variable(name,kind,value)
-
-    # def _get_var_value(self, src: esprima.nodes) :
-    #     if src.init is None :
-    #         return Value(src.id.name, undefined())
-    #     if src.init.type == VarType.literal :
-    #         return Value(src.id.name, src.init.value)
-    #     if src.init.type == VarType.obj :
-    #         value = self._parse_block_object(src.init.properties)
-    #         return Object(src.id.name,value)
-    #     if src.init.type == VarType.array :
-    #         value = self._parse_block_array(src.init.elements)
-    #         return Array(src.id.name,value)
-
     def _parse_block_object(self, prop: esprima.nodes) -> dict :
         obj = {}
         for p in prop :
@@ -177,9 +158,30 @@ class Parser :
     def _check_null(self, src: dict) -> Any :
         operator = "&&"
         first = Expression(ExprKind.binary,"!=",Variable(src.name),Value(src.name,undefined()))
-        # TODO sostituire null
         second = Expression(ExprKind.binary,"!=",Variable(src.name),Pointer(hex(0),src.name))
         return first, second, operator
+
+    def _case_undefined(self, src: dict) -> Any :
+        if src.left.name == StdObjects.undefined :
+            first = Value(None,undefined())
+        else :
+            first = Variable(src.left.name)
+        if src.right.name == StdObjects.undefined :
+            second = Value(None,undefined())
+        else :
+            pass
+        return first, second, src.operator
+
+    def _case_null(self, src: dict) -> Any :
+        if src.left.raw == StdObjects.null :
+            first = Pointer(hex(0),src.left.raw)
+        else :
+            first = Variable(src.left.name)
+        if src.right.raw == StdObjects.null :
+            second = Pointer(hex(0),src.right.raw)
+        else :
+            pass
+        return first, second, src.operator
 
     def _parse_block_expr(self, src: esprima.nodes) -> Expression :
         kind = self._get_kind(src.type)
@@ -236,8 +238,15 @@ class Parser :
                 second = self._parse_block_expr(src.left)
                 operator = src.operator
             else:
-                first, second = self._get_expr_components(src.left, src.right)
-                operator = src.operator
+                if src.left.name == StdObjects.undefined or \
+                   src.right.name == StdObjects.undefined :
+                    first, second, operator = self._case_undefined(src)
+                elif src.left.raw == StdObjects.null or \
+                     src.right.raw == StdObjects.null :
+                    first, second, operator = self._case_null(src)
+                else :
+                    first, second = self._get_expr_components(src.left, src.right)
+                    operator = src.operator
         elif kind == ExprKind.unary :
             if src.argument.type == VarType.identifier :
                 # first, second, operator = self._check_null(src.argument)

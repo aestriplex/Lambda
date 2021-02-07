@@ -1,5 +1,9 @@
 from enum import Enum 
 
+class Typing(Enum) :
+    strong = 0x00
+    weak   = 0x01 
+
 class Language(Enum) :
     Javascript = 0x00
 
