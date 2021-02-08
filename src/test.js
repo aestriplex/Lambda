@@ -4,11 +4,11 @@ var f2 = (tmp) => {
     //     a = 1;
     // }
     var k;
-    // var a = 7;
-    // var b = 3;
-    // var d = {a : 1,b:8};
-    // k = b;
-    // var s = "ciao";
+    var a = 7;
+    var b = 3;
+    var d = {a : 1,b:8};
+    k = b;
+    var s = "ciao";
     if(k == null){
         k = 3;
     }
