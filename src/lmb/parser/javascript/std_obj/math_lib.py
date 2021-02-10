@@ -201,3 +201,67 @@ class StdMath :
             f(x,y) == x ** y
         ]
         return axioms, f(x,y)
+
+    @staticmethod
+    def asin(x: z3) -> Axiomatized :
+        ax, s = StdMath.sin(x)
+        f = Function("asin", RealSort(), RealSort())
+        y = Real("y")
+        axioms = ax + [
+            (f(x) == y) == (s(y) == x)
+        ]
+        return axioms, f(x)
+    
+    @staticmethod
+    def acos(x: z3) -> Axiomatized :
+        ax, c = StdMath.cos(x)
+        f = Function("acos", RealSort(), RealSort())
+        y = Real("y")
+        axioms = ax + [
+            (f(x) == y) == (c(y) == x)
+        ]
+        return axioms, f(x)
+    
+    @staticmethod
+    def atan(x: z3) -> Axiomatized :
+        ax, t = StdMath.tan(x)
+        f = Function("atan", RealSort(), RealSort())
+        y = Real("y")
+        axioms = ax + [
+            (f(x) == y) == (t(y) == x)
+        ]
+        return axioms, f(x)
+    
+    @staticmethod
+    def asinh(x: z3) -> Axiomatized :
+        ax, s = StdMath.sinh(x)
+        f = Function("asinh", RealSort(), RealSort())
+        y = Real("y")
+        axioms = ax + [
+            (f(x) == y) == (s(y) == x)
+        ]
+        return axioms, f(x)
+    
+    @staticmethod
+    def acosh(x: z3) -> Axiomatized :
+        ax, c = StdMath.cosh(x)
+        f = Function("acosh", RealSort(), RealSort())
+        y = Real("y")
+        axioms = ax + [
+            (f(x) == y) == (c(y) == x)
+        ]
+        return axioms, f(x)
+    
+    @staticmethod
+    def atanh(x: z3) -> Axiomatized :
+        ax, t = StdMath.tanh(x)
+        f = Function("atanh", RealSort(), RealSort())
+        y = Real("y")
+        axioms = ax + [
+            (f(x) == y) == (t(y) == x)
+        ]
+        return axioms, f(x)
+    
+    @staticmethod
+    def atan2(x: z3, y: z3) -> Axiomatized :
+        return StdMath.tanh(x/y)
