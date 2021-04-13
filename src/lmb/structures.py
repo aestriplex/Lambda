@@ -292,6 +292,24 @@ class Object(Exe) :
             lbl = self._find_label(ctx, val, key, parent_label)
             val.to_ssa(ctx,lbl)
 
+class GenericValue(Exe) :
+
+    def __init__(self, t: type) -> None :
+        self._type = t
+        self._constraints = []
+
+    def __str__(self) -> str :
+        return f"({self._type.__name__})"
+
+    def __repr__(self) -> str :
+        return f"<Generic {self._type.__name__}>"
+
+    def get_constraints(self, ctx: Context = None) -> list :
+        return self._constraints
+
+    def to_ssa(self, ctx: Context, parent_label: str = None) -> None :
+        pass
+
 class Value(Exe) :
 
     def __init__(self, name: str, val: Any = None)  -> None :
@@ -723,6 +741,8 @@ class Fun(Exe) :
 
     def get_constraints(self, ctx: Context = None) -> list :
         c = []
+        for e in self._params :
+            c += e.get_constraints()
         for e in self._body :
             c += e.get_constraints()
         return c
@@ -732,6 +752,8 @@ class Fun(Exe) :
         """
         ctx.add_function(self)
         self._local_context.set_parent(ctx)
+        for e in self._params :
+            e.to_ssa(self._local_context)
         for e in self._body :
             e.to_ssa(self._local_context)
             
@@ -785,10 +807,12 @@ class Variable(Exe) :
         return self._value
 
     def get_constraints(self, ctx: Context = None) -> list :
-        return self._value.get_constraints()
+        if self._value :
+            return self._value.get_constraints()
+        return []
 
     def to_ssa(self, ctx: Context, parent_label: str = None) :
         # if self._value == Types.undefined :
         #     pass
-        if self._value is not None :
+        if self._value :
             self._value.to_ssa(ctx)
