@@ -1,6 +1,6 @@
 from typing import List, Tuple, Any
 import random
-from z3 import *
+from z3 import z3, If, Function, Real, RealSort, And, ToInt, StringVal, Or
 
 rand_occ = 0
 

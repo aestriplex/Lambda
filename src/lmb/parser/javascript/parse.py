@@ -1,7 +1,7 @@
 import esprima
 import time
 from typing import Generator, Any
-from lmb.structures import Call, Expression, Conditional, Iteration, Fun, Variable, Body, Array, Object, Value, undefined, Pointer, addr_map
+from lmb.structures import Call, Expression, Conditional, Iteration, Fun, Variable, Body, Array, Object, Value, undefined, Pointer, addr_map, empty_array, empty_object
 from .types import EsprimaTypes, VarKind, VarType, LoopKind, update_operators, CallType, StdObjects
 from lmb.options import ExprKind, Types
 from lmb.exceptions import KindTypeException
@@ -67,7 +67,7 @@ class Parser :
                 val = self._parse_block_object(p.value.properties)
                 obj.update({key : Object(key,val)})
             
-        return obj
+        return obj if obj != {} else empty_object()
 
     def _parse_block_array(self, elements) -> list :
         ar = []

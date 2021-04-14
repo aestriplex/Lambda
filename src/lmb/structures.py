@@ -20,6 +20,8 @@ def set_global_datatypes() :
     GlobalType = Datatype('GlobalType')
     GlobalType.declare('undefined')
     GlobalType.declare('null')
+    GlobalType.declare('empty_object')
+    GlobalType.declare('empty_array')
     GlobalType = GlobalType.create()
 
 def set_global_opts(lang: Language) -> None :
@@ -36,6 +38,10 @@ def get_z3_value(value: object) -> z3 :
         return StringVal(value)
     elif type(value) == undefined :
         return GlobalType.undefined
+    elif type(value) == empty_array :
+        return GlobalType.empty_array
+    elif type(value) == empty_object :
+        return GlobalType.empty_object
     elif value == None :
         return GlobalType.null
 
@@ -49,6 +55,10 @@ def get_z3_type(name: str, t: object) -> z3 :
     elif t == undefined :
         return Const(name,GlobalType)
     elif t == null :
+        return Const(name,GlobalType)
+    elif t == empty_object() :
+        return Const(name,GlobalType)
+    elif t == empty_array() :
         return Const(name,GlobalType)
 
 class BlockType(Enum) :
@@ -79,6 +89,22 @@ class null :
 
     def __str__(self) :
         return "null"
+
+class empty_object :
+
+    def __init__(self) :
+        self._type = "empty_object"
+
+    def __str__(self) :
+        return "{}"
+
+class empty_array :
+
+    def __init__(self) :
+        self._type = "empty_array"
+
+    def __str__(self) :
+        return "[]"
 
 class Body() :
 
@@ -282,15 +308,15 @@ class Object(Exe) :
         return ctx.get_label(lbl,Label.prev)
 
     def get_constraints(self, ctx: Context = None) -> list :
-        c= []
         for e in self._content.values() :
-            c += e.get_constraints()
-        return c
+            self._constraints += e.get_constraints()
+        return self._constraints
 
     def to_ssa(self, ctx: Context, parent_label: str = None) -> None :
-        for key,val in zip(self._content.keys(),self._content.values()) :
-            lbl = self._find_label(ctx, val, key, parent_label)
-            val.to_ssa(ctx,lbl)
+        if type(self._content) != empty_object :
+            for key,val in zip(self._content.keys(), self._content.values()) :
+                lbl = self._find_label(ctx, val, key, parent_label)
+                val.to_ssa(ctx,lbl)
 
 class GenericValue(Exe) :
 
