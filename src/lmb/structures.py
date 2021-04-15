@@ -1,5 +1,6 @@
 from __future__ import annotations
 import re
+import collections
 from enum import Enum
 from abc import ABC, abstractmethod
 from .exceptions import VarTypeException, UnsupportedTypeException, BaseTypeException, InconsistentTypeExpression
@@ -8,7 +9,7 @@ from .utils import remove_ctx_index, remove_var_name
 from .options import ExprKind, Types, Language, Typing
 from .memory_map import MemoryMap
 from typing import Any, Generator
-from z3 import z3, And, Or, Not, If, Int, Real, String, IntVal, RealVal, StringVal, ExprRef, BoolRef, Datatype, Const
+from z3 import z3, And, Or, Not, If, Int, Real, String, IntVal, RealVal, StringVal, ExprRef, BoolRef, Datatype, Const, BitVec, BitVecVal
 
 _ANONYMOUS = "Anonymous"
 GlobalType = None
@@ -56,8 +57,8 @@ def get_z3_type(name: str, t: object) -> z3 :
         return Const(name,GlobalType)
     elif t == null :
         return Const(name,GlobalType)
-    elif t == empty_object() :
-        return Const(name,GlobalType)
+    elif t == Pointer :
+        return BitVec(name,16)
     elif t == empty_array() :
         return Const(name,GlobalType)
 
@@ -204,9 +205,9 @@ class Block(Exe) :
 
 class Pointer(Exe) :
 
-    def __init__(self, addr: str, label: str) -> None :
+    def __init__(self, addr: str, label: str = None) -> None :
         self._addr = addr
-        self._label = label
+        self._label = label if label else _ANONYMOUS
         self._constraints = [] # only used in case of null
 
     def __str__(self) -> str :
@@ -222,19 +223,29 @@ class Pointer(Exe) :
         return addr_map.get(self._addr)
 
     def get_constraints(self, ctx: Context = None) -> list :
-        val = addr_map.get(self._addr)
-        if val is not None :
-            return addr_map.get(self._addr).get_constraints(ctx)
         return self._constraints
     
     def to_ssa(self, ctx: Context, parent_label: str = None) -> None :
-        value = addr_map.get(self._addr)
-        if value is not None :
-            value.to_ssa(ctx,self._label)
-        else :
-            ctx.add(self._label,type(null()))
-            lbl = ctx.get_label(self._label,Label.prev) 
-            self._constraints.append(Const(lbl, GlobalType) == GlobalType.null)
+        ctx.add(self._label,type(self))
+        lbl = ctx.get_label(self._label,Label.prev) 
+        p = BitVec(lbl, 16)
+        v = BitVecVal(int(self._addr,16),16)
+        self._constraints.append(p == v)
+
+    # def get_constraints(self, ctx: Context = None) -> list :
+    #     val = addr_map.get(self._addr)
+    #     if val :
+    #         return addr_map.get(self._addr).get_constraints(ctx)
+    #     return self._constraints
+
+    # def to_ssa(self, ctx: Context, parent_label: str = None) -> None :
+    #     value = addr_map.get(self._addr)
+    #     if value is not None :
+    #         value.to_ssa(ctx,self._label)
+    #     else :
+    #         ctx.add(self._label,type(null()))
+    #         lbl = ctx.get_label(self._label,Label.prev) 
+    #         self._constraints.append(Const(lbl, GlobalType) == GlobalType.null)
 
 class Array(Exe) :
 
@@ -278,7 +289,7 @@ class Array(Exe) :
             i += 1
             val.to_ssa(ctx,lbl)
             
-class Object(Exe) :
+class Object(Exe, collections.Mapping) :
 
     def __init__(self, name: str, content: dict, is_embedded: bool = False) -> None :
         self._name = _ANONYMOUS if name is None else name
@@ -290,9 +301,30 @@ class Object(Exe) :
 
     def __repr__(self) -> str :
         return f"<Obj {self._name} at ({hex(id(self))})>"
+    
+    def __iter__(self):
+        return iter(self._content)
+
+    def __len__(self):
+        return len(self._content)
+
+    def __getitem__(self, key):
+        return self._content[key]
+
+    def __hash__(self):
+        return hash(frozenset(self._content.items()))
+
+    def __eq__(self, other: Object) -> bool :
+        return self._content == other.get_content()
+
+    def __ne__(self, other: Object) -> bool :
+        return self._content != other.get_content()
 
     def get_name(self) -> str :
         return self._name
+    
+    def get_content(self) -> dict :
+        return self._content
 
     def _clean_label(self, label: str) -> str :
         return re.sub(remove_ctx_index,"",label)
@@ -504,6 +536,8 @@ class Expression(Exe) :
                 return [Real(first) == Real(second_lbl)]
             elif type_second == str :
                 return [String(first) == String(second_lbl)]
+        elif t_s == Pointer :
+            return [BitVec(first,16) == BitVecVal(int(second.get_addr(),16),16)]
         elif t_s == Expression :
             second.to_ssa(ctx)
         else :
@@ -577,14 +611,17 @@ class Expression(Exe) :
                 self._second.set_label(second_label)
                 #ctx.set_type(self._first.get_name(),ctx.get_type(f"{self._first}"))
                 second = self._second
-                if self._second.get_value() is not None :
+                if self._second.get_value() :
                     second_type = type(self._second.get_value().get_val())
                 else :
                     second_type = ctx.get_type(self._second.get_name())
             elif type(self._second) == Value :
                 second = self._second #.get_val()
                 second_type = type(self._second.get_val())
-            ctx.add(self._first.get_name(),second_type)
+            elif type(self._second) == Pointer :
+                second = self._second
+                second_type = type(self._second)
+            ctx.add(self._first.get_name(), second_type)
             first = ctx.get_label(self._first.get_name(),Label.prev)
             self._constraints += self._make_constraint(ctx,first,second)
         elif self._kind == ExprKind.unary :

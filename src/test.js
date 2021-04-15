@@ -1,6 +1,14 @@
 var f2 = (tmp) => {
+    var a = 1;
     var h = {};
-    var d = {a: 1, b: 8};
+    var d = {};
+    var m = {"a":0, "b": 4,"c":45};
+    if (h == d) {
+        m = {"tr":4};
+    }
+    if(m == h) {
+        a = 5;
+    }
 }
 
 // var f2 = (tmp) => {

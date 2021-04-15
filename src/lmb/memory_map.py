@@ -6,12 +6,13 @@ class MemoryMap :
     Memory map implementation
     """
 
-    def __init__(self) -> None :
-        self._map = {}
-        self._reversed_map = {}
-        self._available = []
+    _map = {}
+    _reversed_map = {}
+    _available = []
 
+    def __init__(self) -> None :
         self._map[hex(0)] = None
+        self._reversed_map[None] = hex(0)
 
     def __str__(self) -> str :
         return "<MemoryMap>"
@@ -27,9 +28,8 @@ class MemoryMap :
         return hex(addr)
 
     def add(self, value: Hashable) -> str :
-        current = self._reversed_map[value]
-        if current :
-            address = current
+        if value in self._reversed_map :
+            address = self._reversed_map[value]
         else :
             address = self._next_addr()
             self._map[address] = value
@@ -54,3 +54,6 @@ class MemoryMap :
             self._available.append(address)
             del self._reversed_map[value]
             del self._map[address]
+
+    def dump(self) -> dict :
+        return self._map

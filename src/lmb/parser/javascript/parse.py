@@ -67,7 +67,7 @@ class Parser :
                 val = self._parse_block_object(p.value.properties)
                 obj.update({key : Object(key,val)})
             
-        return obj if obj != {} else empty_object()
+        return obj # if obj != {} else empty_object()
 
     def _parse_block_array(self, elements) -> list :
         ar = []
@@ -140,6 +140,10 @@ class Parser :
                 second = Value(None, right.value)
             elif right.type in EsprimaTypes.generic_expression :
                 second = self._parse_block_expr(right)
+            elif right.type == VarType.obj :
+                obj = Object(None, self._parse_block_object(right.properties))
+                addr = addr_map.add(obj)
+                second = Pointer(addr)
         elif left.name is None and right.name is not None :
             first = Variable(right.name)
             second = Value(None, left.value)
