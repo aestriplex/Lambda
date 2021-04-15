@@ -67,7 +67,7 @@ class Parser :
                 val = self._parse_block_object(p.value.properties)
                 obj.update({key : Object(key,val)})
             
-        return obj # if obj != {} else empty_object()
+        return obj
 
     def _parse_block_array(self, elements) -> list :
         ar = []
@@ -124,11 +124,17 @@ class Parser :
             #     v.append(Variable(d.id.name,VarKind.var,Types.undefined))
         return v
     
-    def _get_call_name(self, obj: str, member: str) :
+    def _get_call_name(self, obj: str, member: str) -> str :
         return f"{obj}.{member}"
 
-    def _get_arr_name(self, obj: str, index: str) :
+    def _get_arr_name(self, obj: str, index: str) -> str :
         return f"{obj}[{index}]"
+
+    def _parse_member(self, src: object) -> str :
+        if src.property.type == VarType.identifier :
+            return f"{src.object.name}.{src.property.name}"
+        else :
+            ...
     
     def _get_expr_components(self, left: object, right: object) -> tuple :
         if left.name is not None and right.name is not None :
@@ -147,12 +153,18 @@ class Parser :
         elif left.name is None and right.name is not None :
             first = Variable(right.name)
             second = Value(None, left.value)
-        elif left.type == CallType.member and right.type == VarType.literal :
-            if left.computed is True :
-                first = Variable(self._get_arr_name(left.object.name,left.property.value))
+        elif left.type == CallType.member :
+            first = Variable(self._parse_member(left))
+            if right.type == VarType.literal:
+                second = Value(None,right.value)
             else :
-                first = Variable(self._get_call_name(left.object.name,left.property.name))
-            second = Value(None,right.value)
+                ...
+        # elif left.type == CallType.member and right.type == VarType.literal :
+        #     if left.computed is True :
+        #         first = Variable(self._get_arr_name(left.object.name,left.property.value))
+        #     else :
+        #         first = Variable(self._get_call_name(left.object.name,left.property.name))
+        #     second = Value(None,right.value)
         else :
             first = Value(None, right.value)
             second = Value(None, left.value)
