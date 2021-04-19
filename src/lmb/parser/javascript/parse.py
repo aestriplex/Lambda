@@ -20,7 +20,7 @@ class Parser :
             self._end_time = time.time()
             self._stats = self._end_time - self._start_time
 
-    def result(self) -> list : 
+    def result(self) -> Body : 
         return Body(self._result)
     
     def stats(self) :

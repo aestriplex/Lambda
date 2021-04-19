@@ -20,9 +20,16 @@ class Outcome(Enum) :
 
 class Runtime :
 
-    def __init__(self, body: Body = None) -> None :
+    def __init__(self, source: str = None, body: Body = None) -> None :
         self._body = body
+        self._src = source
         self._result = []
+
+    def get_split_source(self) -> list :
+        return self._src.split("\n")
+
+    def get_source(self) -> str :
+        return self._src
 
     def _get_var_label(self, instance: str) -> str :
         return re.sub(remove_ctx_index, "", instance)

@@ -30,6 +30,7 @@ class Lambda :
         set_global_datatypes()
         set_global_opts(lang)
         comp = Compiler(src, lang)
+        self._runtime = Runtime(comp.beautify_source())
         self._body = comp.get_compiled_source()
         self._solver = Solver()
         self._uninterpreted = uninterpreted
@@ -46,7 +47,10 @@ class Lambda :
         It returns the Z3 object corresponding to the SSA translation of the program
         """
         return And(*self.get_constraints())
-
+    
+    def get_source(self) -> str :
+        return self._runtime.get_source()
+    
     def _get_conditionals(self) -> list :
         return []
 
@@ -169,23 +173,21 @@ class Lambda :
             body += element.get_constraints()
 
     def _detect_unreachable(self) -> Runtime :
-        runtime = Runtime()
         body = []
         for e in self._entry_point.get_list() :
             if type(e) == Fun :
                 for b in e.get_body() :
-                    self._add_to_solver(b, body, runtime)
+                    self._add_to_solver(b, body, self._runtime)
             else :
-                self._add_to_solver(e, body, runtime)
-        return runtime
+                self._add_to_solver(e, body, self._runtime)
 
     def check(self) -> Runtime :
         if self._mode == Mode.detect_unreachable :
-            runtime = self._detect_unreachable()
-        elif self._mode == Mode.post_conditions :
-            runtime = Runtime()
+            self._detect_unreachable()
+        # elif self._mode == Mode.post_conditions :
+        #     runtime = Runtime()
 
-        return runtime.get_result()
+        return self._runtime.get_result()
 
     def set_post_condition(self, condition: Any, line: int) :
         if self._mode == Mode.detect_unreachable :

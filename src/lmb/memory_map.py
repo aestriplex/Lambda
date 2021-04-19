@@ -1,3 +1,4 @@
+import sys
 from typing import Any, Hashable
 from .exceptions import SegmentationFaultException
 
@@ -9,13 +10,14 @@ class MemoryMap :
     _map = {}
     _reversed_map = {}
     _available = []
+    _objs = []
 
     def __init__(self) -> None :
         self._map[hex(0)] = None
         self._reversed_map[None] = hex(0)
 
     def __str__(self) -> str :
-        return "<MemoryMap>"
+        return f"<MemoryMap ({sys.getsizeof(self)})>"
 
     def __repr__(self) -> str :
         return f"<MemoryMap at ({hex(id(self))})>"
@@ -40,6 +42,11 @@ class MemoryMap :
         if addr not in self._map :
             raise SegmentationFaultException(addr)
         return self._map[addr]
+
+    def get_by_value(self, val: Hashable) -> str :
+        if val not in self._reversed_map :
+            raise Exception()
+        return self._reversed_map[val]
 
     def remove_by_addr(self, addr: str) -> None :
         val = self._map[addr]
