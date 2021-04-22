@@ -20,7 +20,7 @@ class Parser :
             self._end_time = time.time()
             self._stats = self._end_time - self._start_time
 
-    def result(self) -> Body : 
+    def result(self) -> Body :
         return Body(self._result)
     
     def stats(self) :
@@ -131,10 +131,11 @@ class Parser :
         return f"{obj}[{index}]"
 
     def _parse_member(self, src: object) -> str :
+        obj = ""
         if src.property.type == VarType.identifier :
             return f"{src.object.name}.{src.property.name}"
         else :
-            ...
+            return f"{obj}.{src.property.name}"
     
     def _get_expr_components(self, left: object, right: object) -> tuple :
         if left.name is not None and right.name is not None :
@@ -154,8 +155,8 @@ class Parser :
             first = Variable(right.name)
             second = Value(None, left.value)
         elif left.type == CallType.member :
-            first = Variable(self._parse_member(left))
             if right.type == VarType.literal:
+                first = Variable(self._parse_member(left))
                 second = Value(None,right.value)
             else :
                 ...

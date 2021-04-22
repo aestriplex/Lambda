@@ -4,7 +4,7 @@ with open("README.md", "r", encoding="utf-8") as f :
     long_description = f.read()
 
 setuptools.setup(
-    name="Lambda-lmb",
+    name="lmb",
     version="0.0.2",
     author="Matteo Nicoli",
     author_email="aestriplex@post.com",
@@ -20,7 +20,10 @@ setuptools.setup(
         "License :: OSI Approved :: MIT License",
         "Operating System :: Unix-like",
     ],
-    package_dir={"": "src/lmb"},
-    packages=setuptools.find_packages(where="src/lmb"),
+    package_dir={"": "src/"},
+    packages = ["lmb",
+                "lmb.parser",
+                "lmb.parser.javascript",
+                "lmb.parser.javascript.std_obj"],
     python_requires=">=3.7.3",
 )
