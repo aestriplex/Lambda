@@ -51,7 +51,7 @@ class VariableMissingException(Exception) :
 class InvalidEntryPointException(Exception) :
 
     def __init__(self) :
-        super().__init__("The entry point must be in the body and it must be a function or a function call.")
+        super().__init__("The entry point must be in the body and it must be a function.")
     
 class ImplicitlyTypedException(Exception) :
 
@@ -78,3 +78,13 @@ class InvalidModeException(Exception) :
 
     def __init__(self) :
         super().__init__(f"You cannot set a post-condition in ``detect unreachable`` mode.")
+
+class NullPointerException(Exception) :
+
+    def __init__(self, lbl: str) :
+        super().__init__(f"The variable `{lbl}` is not allocated.")
+
+class SegmentationFaultException(Exception) :
+
+    def __init__(self, addr: str) :
+        super().__init__(f"The address `{addr}` isn't allocated.")

@@ -1,38 +1,34 @@
 from __future__ import annotations
 import re
+import collections
 from enum import Enum
 from abc import ABC, abstractmethod
 from .exceptions import VarTypeException, UnsupportedTypeException, BaseTypeException, InconsistentTypeExpression
 from .context import Context, Label
 from .utils import remove_ctx_index, remove_var_name
-from .options import ExprKind, Types
+from .options import ExprKind, Types, Language, Typing
+from .memory_map import MemoryMap
 from typing import Any, Generator
-from z3 import z3, And, Or, Not, If, Int, Real, String, IntVal, RealVal, StringVal, ExprRef, BoolRef, Datatype, Const
+from z3 import z3, And, Or, Not, If, Int, Real, String, IntVal, RealVal, StringVal, ExprRef, BoolRef, Datatype, Const, BitVec, BitVecVal
 
 _ANONYMOUS = "Anonymous"
-Undefined = None
-
-class undefined : 
-
-    def __init__(self) :
-        self._type = "undefined"
-
-    def __str__(self) :
-        return "undefined"
-
-class null : 
-
-    def __init__(self) :
-        self._type = "null"
-
-    def __str__(self) :
-        return "null"
+GlobalType = None
+addr_map = MemoryMap()
+global_opts = {}
 
 def set_global_datatypes() :
-    global Undefined
-    Undefined = Datatype('Undefined')
-    Undefined.declare('not_defined')
-    Undefined = Undefined.create()
+    global GlobalType
+    GlobalType = Datatype('GlobalType')
+    GlobalType.declare('undefined')
+    GlobalType.declare('null')
+    GlobalType.declare('empty_object')
+    GlobalType.declare('empty_array')
+    GlobalType = GlobalType.create()
+
+def set_global_opts(lang: Language) -> None :
+    global global_opts
+    if lang == Language.Javascript :
+        global_opts["typing"] = Typing.weak
 
 def get_z3_value(value: object) -> z3 :
     if type(value) == int :
@@ -42,7 +38,13 @@ def get_z3_value(value: object) -> z3 :
     elif type(value) == str :
         return StringVal(value)
     elif type(value) == undefined :
-        return Undefined.not_defined
+        return GlobalType.undefined
+    elif type(value) == empty_array :
+        return GlobalType.empty_array
+    elif type(value) == empty_object :
+        return GlobalType.empty_object
+    elif value == None :
+        return GlobalType.null
 
 def get_z3_type(name: str, t: object) -> z3 :
     if t == int :
@@ -52,7 +54,13 @@ def get_z3_type(name: str, t: object) -> z3 :
     elif t == str :
         return String(name)
     elif t == undefined :
-        return Const(name,Undefined)
+        return Const(name,GlobalType)
+    elif t == null :
+        return Const(name,GlobalType)
+    elif t == Pointer :
+        return BitVec(name,16)
+    elif t == empty_array() :
+        return Const(name,GlobalType)
 
 class BlockType(Enum) :
     generic = 0x00
@@ -66,6 +74,38 @@ class Exe(ABC) :
 
     @abstractmethod
     def to_ssa(self, ctx: Context, parent_label: str = None) : ...
+
+class undefined : 
+
+    def __init__(self) :
+        self._type = "undefined"
+
+    def __str__(self) :
+        return "undefined"
+
+class null :
+
+    def __init__(self) :
+        self._type = "null"
+
+    def __str__(self) :
+        return "null"
+
+class empty_object :
+
+    def __init__(self) :
+        self._type = "empty_object"
+
+    def __str__(self) :
+        return "{}"
+
+class empty_array :
+
+    def __init__(self) :
+        self._type = "empty_array"
+
+    def __str__(self) :
+        return "[]"
 
 class Body() :
 
@@ -163,6 +203,51 @@ class Block(Exe) :
         # self._modified = self._ctx.get_last_update_vars()
         self._modified = self._ctx.get_occurrencies()
 
+class Pointer(Exe) :
+
+    def __init__(self, addr: str, label: str = None) -> None :
+        self._addr = addr
+        self._label = label if label else _ANONYMOUS
+        self._constraints = [] # only used in case of null
+
+    def __str__(self) -> str :
+        val = addr_map.get(self._addr)
+        return f"<{val} at {self._addr}>" if val else "null"
+
+    def __repr__(self) -> str :
+        return f"<Pointer {self._addr} at ({hex(id(self))})>"
+
+    def get_addr(self) -> str :
+        return self._addr
+
+    def dereference(self) -> Any:
+        return addr_map.get(self._addr)
+
+    def get_constraints(self, ctx: Context = None) -> list :
+        return self._constraints
+    
+    def to_ssa(self, ctx: Context, parent_label: str = None) -> None :
+        ctx.add(self._label,type(self))
+        lbl = ctx.get_label(self._label,Label.prev) 
+        p = BitVec(lbl, 16)
+        v = BitVecVal(int(self._addr,16),16)
+        self._constraints.append(p == v)
+
+    # def get_constraints(self, ctx: Context = None) -> list :
+    #     val = addr_map.get(self._addr)
+    #     if val :
+    #         return addr_map.get(self._addr).get_constraints(ctx)
+    #     return self._constraints
+
+    # def to_ssa(self, ctx: Context, parent_label: str = None) -> None :
+    #     value = addr_map.get(self._addr)
+    #     if value is not None :
+    #         value.to_ssa(ctx,self._label)
+    #     else :
+    #         ctx.add(self._label,type(null()))
+    #         lbl = ctx.get_label(self._label,Label.prev) 
+    #         self._constraints.append(Const(lbl, GlobalType) == GlobalType.null)
+
 class Array(Exe) :
 
     def __init__(self, name: str, content: list) -> None :
@@ -205,7 +290,7 @@ class Array(Exe) :
             i += 1
             val.to_ssa(ctx,lbl)
             
-class Object(Exe) :
+class Object(Exe, collections.Mapping) :
 
     def __init__(self, name: str, content: dict, is_embedded: bool = False) -> None :
         self._name = _ANONYMOUS if name is None else name
@@ -217,9 +302,30 @@ class Object(Exe) :
 
     def __repr__(self) -> str :
         return f"<Obj {self._name} at ({hex(id(self))})>"
+    
+    def __iter__(self):
+        return iter(self._content)
+
+    def __len__(self):
+        return len(self._content)
+
+    def __getitem__(self, key):
+        return self._content[key]
+
+    def __hash__(self):
+        return hash(frozenset(self._content.items()))
+
+    def __eq__(self, other: Object) -> bool :
+        return self._content == other.get_content()
+
+    def __ne__(self, other: Object) -> bool :
+        return self._content != other.get_content()
 
     def get_name(self) -> str :
         return self._name
+    
+    def get_content(self) -> dict :
+        return self._content
 
     def _clean_label(self, label: str) -> str :
         return re.sub(remove_ctx_index,"",label)
@@ -235,15 +341,33 @@ class Object(Exe) :
         return ctx.get_label(lbl,Label.prev)
 
     def get_constraints(self, ctx: Context = None) -> list :
-        c= []
         for e in self._content.values() :
-            c += e.get_constraints()
-        return c
+            self._constraints += e.get_constraints()
+        return self._constraints
 
     def to_ssa(self, ctx: Context, parent_label: str = None) -> None :
-        for key,val in zip(self._content.keys(),self._content.values()) :
-            lbl = self._find_label(ctx, val, key, parent_label)
-            val.to_ssa(ctx,lbl)
+        if type(self._content) != empty_object :
+            for key,val in zip(self._content.keys(), self._content.values()) :
+                lbl = self._find_label(ctx, val, key, parent_label)
+                val.to_ssa(ctx,lbl)
+
+class GenericValue(Exe) :
+
+    def __init__(self, t: type) -> None :
+        self._type = t
+        self._constraints = []
+
+    def __str__(self) -> str :
+        return f"({self._type.__name__})"
+
+    def __repr__(self) -> str :
+        return f"<Generic {self._type.__name__}>"
+
+    def get_constraints(self, ctx: Context = None) -> list :
+        return self._constraints
+
+    def to_ssa(self, ctx: Context, parent_label: str = None) -> None :
+        pass
 
 class Value(Exe) :
 
@@ -287,28 +411,34 @@ class Value(Exe) :
         elif type(self._content) == str :
             self._constraints.append(String(lbl) == StringVal(self._content))
         elif type(self._content) == undefined :
-            self._constraints.append(Const(lbl, Undefined) == Undefined.not_defined)
+            self._constraints.append(Const(lbl, GlobalType) == GlobalType.undefined)
 
 class Expression(Exe) :
 
-    def __init__(self, kind: Any, operator: Any, first: Exe, second: Exe = None) -> None :
+    def __init__(self, kind: Any, operator: Any, first: Exe, second: Exe = None, lineno: tuple = None) -> None :
         self._kind = kind
         self._operator = operator
         self._first = first
         self._second = second
+        self._lineno = lineno
         self._constraints = []
 
     def __str__(self) -> str :
         if self._second is None :
-            return f"{self._operator}{self._first}"
+            # unary expression
+            expr_str = f"{self._operator}{self._first}"
         else :
-            if type(self._first) != Expression and \
-               type(self._second) != Expression :
-               return f"{self._first} {self._operator} {self._second}"
-            return f"({self._first} {self._operator} {self._second})"
+            expr_str = f"{self._first} {self._operator} {self._second}"
+        if  self._is_expr_embedded() :
+           expr_str = f"({expr_str})"
+
+        return expr_str
 
     def __repr__(self) -> str :
         return f"<Expr {self._operator} ({self._kind.name}) at {hex(id(self))}>"
+
+    def _is_expr_embedded(self) :
+        return type(self._first) != Expression and type(self._second) != Expression
 
     def get_first(self) -> str :
         return str(self._first)
@@ -319,10 +449,13 @@ class Expression(Exe) :
     def get_operator(self) -> str :
         return self._operator
 
+    def get_lineno(self) -> any :
+        return [self._lineno[0],self._lineno[1]]
+
     def _get_z3_operator(self, first: z3, second: z3, op: str) -> BoolRef :
         if op == "!" :
             return Not(first)
-        elif op == "+" :  
+        elif op == "+" :   
             return first + second
         elif op == "-" :  
             return first - second
@@ -335,13 +468,13 @@ class Expression(Exe) :
         elif op == "%" :  
             return first % second
         elif op == "==" :
-            if first.sort() == Undefined or\
-                second.sort() == Undefined :
+            if first.sort() == GlobalType or\
+                second.sort() == GlobalType :
                 return first.sort() == second.sort()
             return first == second
         elif op == "!=" :
-            if first.sort() == Undefined or\
-               second.sort() == Undefined :
+            if first.sort() == GlobalType or\
+               second.sort() == GlobalType :
                 return first.sort() != second.sort()
             return first != second
         elif op == "&&" :  
@@ -409,6 +542,8 @@ class Expression(Exe) :
                 return [Real(first) == Real(second_lbl)]
             elif type_second == str :
                 return [String(first) == String(second_lbl)]
+        elif t_s == Pointer :
+            return [BitVec(first,16) == BitVecVal(int(second.get_addr(),16),16)]
         elif t_s == Expression :
             second.to_ssa(ctx)
         else :
@@ -455,6 +590,10 @@ class Expression(Exe) :
                 elif type(self._second) == Expression :
                     self._second.to_ssa(ctx)
                     second = self._second.get_constraints(ctx)[0]
+                elif type(self._second) == Pointer :
+                    val = self._second.dereference()
+                    t_second = type(val)
+                    second = get_z3_value(val)
             elif type(self._first) == Value :
                 first = get_z3_value(self._first.get_val())
                 t_first = type(self._first.get_val())
@@ -478,14 +617,17 @@ class Expression(Exe) :
                 self._second.set_label(second_label)
                 #ctx.set_type(self._first.get_name(),ctx.get_type(f"{self._first}"))
                 second = self._second
-                if self._second.get_value() is not None :
+                if self._second.get_value() :
                     second_type = type(self._second.get_value().get_val())
                 else :
                     second_type = ctx.get_type(self._second.get_name())
             elif type(self._second) == Value :
                 second = self._second #.get_val()
                 second_type = type(self._second.get_val())
-            ctx.add(self._first.get_name(),second_type)
+            elif type(self._second) == Pointer :
+                second = self._second
+                second_type = type(self._second)
+            ctx.add(self._first.get_name(), second_type)
             first = ctx.get_label(self._first.get_name(),Label.prev)
             self._constraints += self._make_constraint(ctx,first,second)
         elif self._kind == ExprKind.unary :
@@ -668,6 +810,8 @@ class Fun(Exe) :
 
     def get_constraints(self, ctx: Context = None) -> list :
         c = []
+        for e in self._params :
+            c += e.get_constraints()
         for e in self._body :
             c += e.get_constraints()
         return c
@@ -677,6 +821,8 @@ class Fun(Exe) :
         """
         ctx.add_function(self)
         self._local_context.set_parent(ctx)
+        for e in self._params :
+            e.to_ssa(self._local_context)
         for e in self._body :
             e.to_ssa(self._local_context)
             
@@ -730,10 +876,12 @@ class Variable(Exe) :
         return self._value
 
     def get_constraints(self, ctx: Context = None) -> list :
-        return self._value.get_constraints()
+        if self._value :
+            return self._value.get_constraints()
+        return []
 
     def to_ssa(self, ctx: Context, parent_label: str = None) :
         # if self._value == Types.undefined :
         #     pass
-        if self._value is not None :
+        if self._value :
             self._value.to_ssa(ctx)

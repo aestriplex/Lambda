@@ -18,6 +18,11 @@ class EsprimaTypes() :
     fun_expr = ["FunctionExpression","ArrowFunctionExpression"]
     declarator = ["VariableDeclarator","ObjectDeclarator"]
 
+class StdObjects() :
+    null = "null"
+    undefined = "undefined"
+    math = "Math"
+
 update_operators = ["+=", "-=", "*=", "/=", "&=", "|="]
     
 class VarKind(Enum) :

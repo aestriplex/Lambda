@@ -2,3 +2,6 @@
 .DS_Store
 doc/intro/.ipynb_checkpoints/Lambda-checkpoint.ipynb
 *.pyc
+build/
+dist/
+src/lmb.egg-info/
