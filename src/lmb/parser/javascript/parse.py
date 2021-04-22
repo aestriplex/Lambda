@@ -13,7 +13,7 @@ class Parser :
         if stats :
             self._start_time = time.time()
 
-        self._source = esprima.parseScript(source)
+        self._source = esprima.parseScript(source,{"loc":True})
         self._result = self._parse_block(self._source.body)
 
         if stats :
@@ -137,7 +137,7 @@ class Parser :
         else :
             return f"{obj}.{src.property.name}"
     
-    def _get_expr_components(self, left: object, right: object) -> tuple :
+    def _get_expr_components(self, left: object, right: object, loc: esprima.nodes = None) -> tuple :
         if left.name is not None and right.name is not None :
             first = Variable(left.name)
             second = Variable(right.name)
@@ -146,7 +146,7 @@ class Parser :
             if right.type == VarType.literal :
                 second = Value(None, right.value)
             elif right.type in EsprimaTypes.generic_expression :
-                second = self._parse_block_expr(right)
+                second = self._parse_block_expr(right, loc)
             elif right.type == VarType.obj :
                 obj = Object(None, self._parse_block_object(right.properties))
                 addr = addr_map.add(obj)
@@ -200,13 +200,14 @@ class Parser :
             pass
         return first, second, src.operator
 
-    def _parse_block_expr(self, src: esprima.nodes) -> Expression :
+    def _parse_block_expr(self, src: esprima.nodes, loc: esprima.nodes = None) -> Expression :
         kind = self._get_kind(src.type)
+        lineno = None
         if src.operator in update_operators :
             operator = "="
             first = Variable(src.left.name)
             if src.right.type in EsprimaTypes.generic_expression :
-                embedded_second = self._parse_block_expr(src.right)
+                embedded_second = self._parse_block_expr(src.right,loc)
             else :
                 if src.right.value is None :
                     embedded_second = Value(src.right.value)
@@ -230,18 +231,19 @@ class Parser :
                                 Value(None,1))
             kind = ExprKind.assignment
         elif kind == ExprKind.assignment :
-            first, second = self._get_expr_components(src.left, src.right)
+            first, second = self._get_expr_components(src.left, src.right, loc)
             operator = src.operator
         elif kind == ExprKind.binary :
+            lineno = (loc.start.line,loc.end.line)
             if src.right is None and src.left is None :
                 first, second, operator = self._check_null(src)
             elif src.right.type == EsprimaTypes.bin_expr and \
                 src.left.type == EsprimaTypes.bin_expr :
                 operator = src.operator
-                first = self._parse_block_expr(src.left)
-                second = self._parse_block_expr(src.right)
+                first = self._parse_block_expr(src.left,loc)
+                second = self._parse_block_expr(src.right,loc)
             elif src.right.type == EsprimaTypes.bin_expr :
-                first = self._parse_block_expr(src.right)
+                first = self._parse_block_expr(src.right,loc)
                 operator = src.operator
                 if src.left.name is None :
                     second = Value(None, src.left.value)
@@ -252,7 +254,7 @@ class Parser :
                     first = Value(None, src.right.value)
                 else :
                     first = Variable(src.right.name)
-                second = self._parse_block_expr(src.left)
+                second = self._parse_block_expr(src.left,loc)
                 operator = src.operator
             else:
                 if src.left.name == StdObjects.undefined or \
@@ -262,17 +264,18 @@ class Parser :
                      src.right.raw == StdObjects.null :
                     first, second, operator = self._case_null(src)
                 else :
-                    first, second = self._get_expr_components(src.left, src.right)
+                    first, second = self._get_expr_components(src.left, src.right,loc)
                     operator = src.operator
         elif kind == ExprKind.unary :
+            lineno = (loc.start.line,loc.end.line)
             if src.argument.type == VarType.identifier :
                 # first, second, operator = self._check_null(src.argument)
                 second = None
                 operator = "!"
-                first = self._parse_block_expr(src.argument)
+                first = self._parse_block_expr(src.argument,loc)
             else :
                 pass
-        return Expression(kind,operator,first,second)
+        return Expression(kind,operator,first,second,lineno)
 
     def _parse_block_fun(self, src) :
         name = src.id.name
@@ -281,7 +284,7 @@ class Parser :
         return Fun(name,params,body,src.isAsync)
 
     def _parse_block_conditional(self, src) :
-        condition = self._parse_block_expr(src.test)
+        condition = self._parse_block_expr(src.test, src.loc)
         if src.consequent.body is None :
             if_block = self._parse_block([src.consequent])
         else :
@@ -348,7 +351,7 @@ class Parser :
             elif self._is_call(e) :
                 body.append(self._parse_block_call(e.expression))
             elif self._is_expression(e) :
-                body.append(self._parse_block_expr(e.expression))
+                body.append(self._parse_block_expr(e.expression, e.loc))
             elif self._is_loop(e) :
                 body += self._parse_block_loop(e)
         return body

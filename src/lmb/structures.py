@@ -211,7 +211,8 @@ class Pointer(Exe) :
         self._constraints = [] # only used in case of null
 
     def __str__(self) -> str :
-        return f"<{addr_map.get(self._addr)} at {self._addr}>"
+        val = addr_map.get(self._addr)
+        return f"<{val} at {self._addr}>" if val else "null"
 
     def __repr__(self) -> str :
         return f"<Pointer {self._addr} at ({hex(id(self))})>"
@@ -414,15 +415,17 @@ class Value(Exe) :
 
 class Expression(Exe) :
 
-    def __init__(self, kind: Any, operator: Any, first: Exe, second: Exe = None) -> None :
+    def __init__(self, kind: Any, operator: Any, first: Exe, second: Exe = None, lineno: tuple = None) -> None :
         self._kind = kind
         self._operator = operator
         self._first = first
         self._second = second
+        self._lineno = lineno
         self._constraints = []
 
     def __str__(self) -> str :
         if self._second is None :
+            # unary expression
             expr_str = f"{self._operator}{self._first}"
         else :
             expr_str = f"{self._first} {self._operator} {self._second}"
@@ -445,6 +448,9 @@ class Expression(Exe) :
 
     def get_operator(self) -> str :
         return self._operator
+
+    def get_lineno(self) -> any :
+        return [self._lineno[0],self._lineno[1]]
 
     def _get_z3_operator(self, first: z3, second: z3, op: str) -> BoolRef :
         if op == "!" :
