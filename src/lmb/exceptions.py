@@ -88,3 +88,23 @@ class SegmentationFaultException(Exception) :
 
     def __init__(self, addr: str) :
         super().__init__(f"The address `{addr}` isn't allocated.")
+
+class CommandNotFoundException(Exception) :
+
+    def __init__(self, cmd: str) :
+        super().__init__(f"Command `{cmd}` does not exists.")
+
+class CommandParseException(Exception) :
+
+    def __init__(self, cmd: str) :
+        super().__init__(f"An error occurred while parsing `{cmd}`. Command has to have the structure <cmd:val>.")
+
+class MissingParamenterException(Exception) :
+
+    def __init__(self, func: str, param: str) :
+        super().__init__(f"The function `{func}` doesn't take `{param}` as parameter.")
+
+class UnknownTypeException(Exception) :
+
+    def __init__(self, t: str) :
+        super().__init__(f"The type `{t}` isn't available for initialization.")

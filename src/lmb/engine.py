@@ -7,16 +7,12 @@ from .context import Context
 from .structures import Body, Exe, Fun, Call, Expression, Variable, Conditional, set_global_datatypes, set_global_opts
 from .exceptions import InvalidEntryPointException, InvalidModeException
 from .runtime import Runtime, Mode, Outcome
+from .entrypoint import EntryPoint
 import json
 
 class Scope(Enum) :
     full  = 0x00
     local = 0x01
-
-class EntryPoint :
-    def __init__(self, name: str, init: dict) -> None :
-        self.name = name
-        self.init = init
 
 class Lambda :
     """
@@ -30,7 +26,7 @@ class Lambda :
         set_global_datatypes()
         set_global_opts(lang)
         comp = Compiler(src, lang)
-        self._runtime = Runtime(comp.beautify_source())
+        self._runtime = Runtime(comp.get_source())
         self._body = comp.get_compiled_source()
         self._solver = Solver()
         self._uninterpreted = uninterpreted
