@@ -108,3 +108,8 @@ class UnknownTypeException(Exception) :
 
     def __init__(self, t: str) :
         super().__init__(f"The type `{t}` isn't available for initialization.")
+
+class InconsistentTypeException(Exception) :
+
+    def __init__(self, v: str, t: str) :
+        super().__init__(f"`{v}` has to be of type: `{t}`")

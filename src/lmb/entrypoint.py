@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import Any
 from .context import Context, Label
-from .exceptions import CommandNotFoundException, CommandParseException, UnknownTypeException
+from .exceptions import CommandNotFoundException, CommandParseException, UnknownTypeException, InconsistentTypeException
 
 class Cmd :
     _type      = "type"
@@ -46,7 +46,14 @@ class TypeInit(Command) :
 
 class ValueInit(Command) :
 
-    def execute(self, ctx: Context) -> list : ...
+    def _is_number(self, value: str) -> bool :
+        pass
+
+    def _parse_value(self, value: str) :
+        pass
+
+    def execute(self, ctx: Context) -> list :
+        ...
 
 class ConstraintInit(Command) :
 
@@ -91,7 +98,7 @@ class EntryPoint :
             {
                 <var name> : <<command>:<value>>
             }
-        
+
         This function has to parse the input dict in order to build a list of
         commands.
         """
