@@ -25,17 +25,18 @@
 // }
 
 var f2 = (tmp) => {
-    if(tmp>0) {
+    if(tmp > 0.0) {
         tmp = 0;
     }
     var a = null;
     if(!a){
         a = 1;
     }
+    var m = 3.14
     var k;
     var a = 7;
     var b = 3;
-    var d = {a : 1,b:8};
+    var d = {a : 1, b:8};
     k = b;
     var s = "ciao";
     if(k == null){
@@ -48,11 +49,9 @@ var f2 = (tmp) => {
         k = (b+2)*3;
         b = a;
         k = 8;
-        m[0] = 3;
         k=9;
     } 
     else {
-        m[0] = 6;
         b = 1;
     }
     

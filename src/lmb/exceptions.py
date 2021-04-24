@@ -113,3 +113,13 @@ class InconsistentTypeException(Exception) :
 
     def __init__(self, v: str, t: str) :
         super().__init__(f"`{v}` has to be of type: `{t}`")
+
+class UnimplementedFeatureException(Exception) :
+
+    def __init__(self, param: str) :
+        super().__init__(f"`{param}` has not been implemented (yet).")
+
+class InitValueException(Exception) :
+
+    def __init__(self, val: str) :
+        super().__init__(f"The init value has to have the form <type>:<val>; given: `{val}`.")

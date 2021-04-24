@@ -40,7 +40,7 @@ class Lambda :
 
     def get_equation(self) -> And :
         """
-        It returns the Z3 object corresponding to the SSA translation of the program
+        return the Z3 object corresponding to the SSA translation of the program
         """
         return And(*self.get_constraints())
     
@@ -52,6 +52,7 @@ class Lambda :
 
     def get_constraints(self) -> list :
         c = []
+        c += self._entry_point.get_constraints() # for init values
         for e in self._body.get_list() :
             c += e.get_constraints()
         return c
@@ -108,8 +109,8 @@ class Lambda :
         # init_p = ep.init
         # for p in init_p :
         #     ctx.add(p,init_p[p])
-        l = ep.execute(ctx)
-        return Body([f],ctx)
+        init_constraints = ep.execute(ctx)
+        return Body([f], ctx, init_constraints)
 
     def set_entry_point(self, entry: EntryPoint) -> None :
         """
@@ -169,6 +170,7 @@ class Lambda :
 
     def _detect_unreachable(self) -> Runtime :
         body = []
+        body += self._entry_point.get_constraints()
         for e in self._entry_point.get_list() :
             if type(e) == Fun :
                 for b in e.get_body() :

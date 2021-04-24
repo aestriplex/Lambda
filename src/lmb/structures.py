@@ -109,12 +109,13 @@ class empty_array :
 
 class Body() :
 
-    def __init__(self, lst: list, ctx: Context = None) -> None :
+    def __init__(self, lst: list, ctx: Context = None, init: list = []) -> None :
         self._content = lst
         if ctx is None :
             self._global_context = Context()
         else :
             self._global_context = ctx
+        self._constraints = init
 
     def __str__(self) -> str :
         var = "var" if len(self._content) == 1 else "vars"
@@ -135,6 +136,9 @@ class Body() :
 
     def _get_body_repr(self, body: list, s: str) -> str:
         pass
+
+    def get_constraints(self) -> list :
+        return self._constraints
 
     def add_element(self, e: Exe) -> None :
         self._content.append(e)
@@ -551,8 +555,12 @@ class Expression(Exe) :
             f = get_z3_type(first,t_f)
             return [f == second]
 
+    def _are_both_numbers(self, t1: Any, t2: Any) -> bool :
+        return (t1 == int or t1 == float) \
+                and (t2 == int or t2 == float)
+
     def _check_consistency(self, t1: Any, t2: Any, op: str) -> None :
-        if t1 != t2 :
+        if t1 != t2 and not self._are_both_numbers(t1,t2):
             if t1 != undefined and t2 != undefined and \
                (op != "==" or op != "!=") :
                 raise InconsistentTypeExpression(self)

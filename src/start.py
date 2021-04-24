@@ -6,7 +6,7 @@ with open(Path(__file__).parent / "test.js","r") as f :
     src = f.read()
 
 l = Lambda(src, Language.Javascript)
-init = {"tmp": "type:int"}
+init = {"tmp": "value:float:3.2"}
 ep = EntryPoint("f2",init)
 l.set_entry_point(ep)
 l.build()
