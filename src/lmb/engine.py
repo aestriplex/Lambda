@@ -5,7 +5,7 @@ from .options import Language
 from .parser.compiler import Compiler
 from .context import Context
 from .structures import Body, Exe, Fun, Call, Expression, Variable, Conditional, set_global_datatypes, set_global_opts
-from .exceptions import InvalidEntryPointException, InvalidModeException
+from .exceptions import InvalidEntryPointException, InvalidModeException, MissingParamenterException
 from .runtime import Runtime, Mode, Outcome
 from .entrypoint import EntryPoint
 import json
@@ -96,19 +96,19 @@ class Lambda :
 
     def _check_params(self, f: Fun, ep: EntryPoint) -> bool :
         names = [e.get_name() for e in f.get_params()]
-        for p in ep.init :
+        for p in ep.get_params() :
             if p not in names :
-                return False
-        for n in names :
-            if n not in ep.init :
-                return False
-        return True
+                raise MissingParamenterException(f.get_name(),p)
+        # for n in names :
+        #     if n not in ep.init :
+        #         return False
 
     def _get_entry_point_body(self, f: Fun, ep: EntryPoint) -> Body :
         ctx = Context()
-        init_p = ep.init
-        for p in init_p :
-            ctx.add(p,init_p[p])
+        # init_p = ep.init
+        # for p in init_p :
+        #     ctx.add(p,init_p[p])
+        l = ep.execute(ctx)
         return Body([f],ctx)
 
     def set_entry_point(self, entry: EntryPoint) -> None :
@@ -119,11 +119,10 @@ class Lambda :
         """
         blocks = [e for e in self._body.get_list() if self._is_main(e)]
         for e in blocks :
-            if e.get_name() == entry.name :
+            if e.get_name() == entry.get_name() :
                 if type(e) != Fun :
                     raise InvalidEntryPointException()
-                if not self._check_params(e, entry) :
-                    raise Exception("aaaa")
+                self._check_params(e, entry)
                 self._entry_point = self._get_entry_point_body(e, entry) # Body([e])
                 self._scope = Scope.local
             

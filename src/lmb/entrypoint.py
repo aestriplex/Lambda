@@ -22,17 +22,17 @@ class Command(ABC) :
         self._var = var
 
     @abstractmethod
-    def execute(self) -> list : ...
+    def execute(self, ctx: Context) -> list : ...
 
 class TypeInit(Command) :
 
     def _parse_type(self, t: str) -> Any :
         if t == InitTypes._int :
-            pass
+            return int
         elif t == InitTypes._float :
-            pass
+            return float
         elif t == InitTypes._string :
-            pass
+            return str
         elif t == InitTypes._null :
             pass
         elif t == InitTypes._undefined :
@@ -41,8 +41,7 @@ class TypeInit(Command) :
             raise UnknownTypeException(t)
 
     def execute(self, ctx: Context) -> list :
-        lbl = ctx.get_label(self._var,Label.prev)
-        ctx.add(lbl,self._parse_type(self._command))
+        ctx.add(self._var,self._parse_type(self._command))
         return []
 
 class ValueInit(Command) :
@@ -65,6 +64,12 @@ class EntryPoint :
     
     def get_params(self) -> tuple :
         return tuple(self._init.keys())
+
+    def execute(self, ctx: Context) -> list :
+        a = []
+        for cmd in self._cmds :
+            a.append(cmd.execute(ctx))
+        return a
 
     def _parse_command(self, value: str, var: str) -> Command :
         _t,_v = value.split(":")
