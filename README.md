@@ -9,7 +9,7 @@ pip install esprima
 ```
 * z3
 ```
-pip install z3
+pip install z3-solver
 ```
 
 ## Demo

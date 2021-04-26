@@ -54,11 +54,13 @@ var f2 = (tmp) => {
     else {
         b = 1;
     }
-    
     if(b>k) {
         k = (b+2)*3;
         b = 0;
         k = 6;
+    }
+    if(!b){
+        b = "aaa";
     }
     if(s == "ciao"){
         s = "abc";
