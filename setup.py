@@ -22,7 +22,7 @@ setuptools.setup(
     ],
     install_requires=[
         "esprima",
-        "z3-prover",
+        "z3-solver",
         "jsbeautifier"
     ],
     package_dir={"": "src/"},
