@@ -1,1 +1,9 @@
 __path__ = __import__('pkgutil').extend_path(__path__, __name__)
+__version__ = "0.1.0"
+__author__ = "Matteo Nicoli"
+__copyright__ = "Copyright 2021, Matteo Nicoli"
+__credits__ = ["Matteo Nicoli"]
+__license__ = "GPL"
+__maintainer__ = "Matteo Nicoli"
+__email__ = "aestriplex@post.com"
+__status__ = "Production"
