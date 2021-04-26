@@ -79,3 +79,4 @@ def merge_types_dict(first: dict, second: dict) -> dict :
             raise InconsistentTypeAssignment(f"{k} ({first[k]})",f"{k} ({second[k]})")
                
     return out
+    

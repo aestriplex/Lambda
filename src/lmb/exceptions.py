@@ -46,7 +46,7 @@ class InnerContextMissingException(Exception) :
 class VariableMissingException(Exception) :
 
     def __init__(self,_n) :
-        super().__init__(f"Variable {_n} must be delacred in the context.")
+        super().__init__(f"Variable `{_n}` must be delacred in the context.")
 
 class InvalidEntryPointException(Exception) :
 
@@ -88,3 +88,38 @@ class SegmentationFaultException(Exception) :
 
     def __init__(self, addr: str) :
         super().__init__(f"The address `{addr}` isn't allocated.")
+
+class CommandNotFoundException(Exception) :
+
+    def __init__(self, cmd: str) :
+        super().__init__(f"Command `{cmd}` does not exists.")
+
+class CommandParseException(Exception) :
+
+    def __init__(self, cmd: str) :
+        super().__init__(f"An error occurred while parsing `{cmd}`. Command has to have the structure <cmd:val>.")
+
+class MissingParamenterException(Exception) :
+
+    def __init__(self, func: str, param: str) :
+        super().__init__(f"The function `{func}` doesn't take `{param}` as parameter.")
+
+class UnknownTypeException(Exception) :
+
+    def __init__(self, t: str) :
+        super().__init__(f"The type `{t}` isn't available for initialization.")
+
+class InconsistentTypeException(Exception) :
+
+    def __init__(self, v: str, t: str) :
+        super().__init__(f"`{v}` has to be of type: `{t}`")
+
+class UnimplementedFeatureException(Exception) :
+
+    def __init__(self, param: str) :
+        super().__init__(f"`{param}` has not been implemented (yet).")
+
+class InitValueException(Exception) :
+
+    def __init__(self, val: str) :
+        super().__init__(f"The init value has to have the form <type>:<val>; given: `{val}`.")

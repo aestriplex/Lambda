@@ -5,7 +5,7 @@ with open("README.md", "r", encoding="utf-8") as f :
 
 setuptools.setup(
     name="lmb",
-    version="0.0.2",
+    version="0.1.0",
     author="Matteo Nicoli",
     author_email="aestriplex@post.com",
     description="nothing but master",
@@ -19,6 +19,11 @@ setuptools.setup(
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: MIT License",
         "Operating System :: Unix-like",
+    ],
+    install_requires=[
+        "esprima",
+        "z3-prover",
+        "jsbeautifier"
     ],
     package_dir={"": "src/"},
     packages = ["lmb",
