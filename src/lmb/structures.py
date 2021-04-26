@@ -453,8 +453,8 @@ class Expression(Exe) :
     def get_operator(self) -> str :
         return self._operator
 
-    def get_lineno(self) -> any :
-        return [self._lineno[0],self._lineno[1]]
+    def get_lineno(self) -> tuple :
+        return (self._lineno[0],self._lineno[1])
 
     def _get_z3_operator(self, first: z3, second: z3, op: str) -> BoolRef :
         if op == "!" :
@@ -829,6 +829,7 @@ class Fun(Exe) :
         """
         ctx.add_function(self)
         self._local_context.set_parent(ctx)
+        self._local_context.merge_from(ctx)
         for e in self._params :
             e.to_ssa(self._local_context)
         for e in self._body :

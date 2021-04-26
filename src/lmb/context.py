@@ -126,6 +126,13 @@ class Context() :
             n_occurrence += 1
         
         return f"{var_name}_{n_occurrence}"
+
+    def merge_from(self, other: Context) -> None :
+        occurrencies = merge_int_dict_max(self._occurrencies,other.get_occurrencies())
+        types = merge_any_dict(self._types,other.get_types())
+
+        self._occurrencies = occurrencies
+        self._types = types
     
     @staticmethod
     def merge_context(ctx1: Context, ctx2: Context) -> Context :
