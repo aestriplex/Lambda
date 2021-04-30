@@ -3,12 +3,13 @@ import re
 import sys
 from typing import Any
 from enum import Enum
+import z3
 from .utils import remove_ctx_index, merge_int_dict_max, merge_any_dict, merge_types_dict
 from .exceptions import VariableMissingException, ImplicitlyTypedException, InconsistentTypeAssignment
 
+z3ctx = z3.Context()
+
 class Label(Enum) :
-    """
-    """
     curr   = 0x00
     prev = 0x01
 
@@ -23,6 +24,10 @@ class Context() :
         else :
             self._occurrencies, self._types = self._get_from_parent(parent)
         self._parent = parent
+    #     super().__init__()
+
+    # def __del__(self) :
+    #     super().__del__()
 
     def __src__(self) -> str :
         var = "var" if len(self._occurrencies) == 1 else "vars"

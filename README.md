@@ -4,20 +4,12 @@ A python library to automate the developing of symbolic tests that works on top 
 
 ## Requirements
 * esprima
-```
-pip install esprima
-```
 * z3
-```
-pip install z3-solver
-```
+* jsbeautifier
 
 ## Demo
 
-To tun a demo, you have to run 
-```
-python3 start.py
-```
+Available soon
 
 ## Examples
 

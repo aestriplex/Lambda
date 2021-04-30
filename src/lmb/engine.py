@@ -3,7 +3,7 @@ from z3 import And, Not, Solver, sat, unsat, Datatype, Const
 from enum import Enum
 from .options import Language
 from .parser.compiler import Compiler
-from .context import Context
+from .context import Context, z3ctx
 from .structures import Body, Exe, Fun, Call, Expression, Variable, Conditional, set_global_datatypes, set_global_opts
 from .exceptions import InvalidEntryPointException, InvalidModeException, MissingParamenterException
 from .runtime import Runtime, Mode, Outcome
@@ -28,7 +28,7 @@ class Lambda :
         comp = Compiler(src, lang)
         self._runtime = Runtime(comp.get_source())
         self._body = comp.get_compiled_source()
-        self._solver = Solver()
+        self._solver = Solver(ctx=z3ctx)
         self._uninterpreted = uninterpreted
         self._entry_point = self._body
         self._scope = Scope.full
@@ -42,7 +42,7 @@ class Lambda :
         """
         return the Z3 object corresponding to the SSA translation of the program
         """
-        return And(*self.get_constraints())
+        return And(*self.get_constraints(),z3ctx)
     
     def get_source(self) -> str :
         return self._runtime.get_source()
@@ -148,7 +148,7 @@ class Lambda :
 
     def _add_to_solver(self, element: Exe, body: list, runtime: Runtime) -> None :
         if type(element) == Conditional :
-            self._solver.add(And(*body))
+            self._solver.add(And(*body,z3ctx))
             self._solver.push()
             post = element.get_test_constraint()
             self._solver.add(post)

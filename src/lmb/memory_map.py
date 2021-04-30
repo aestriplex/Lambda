@@ -29,6 +29,8 @@ class MemoryMap :
             addr = int([k for k in self._map][-1],16) + 1
         return hex(addr)
 
+    def _detect_leaks(self) : ...
+
     def add(self, value: Hashable) -> str :
         if value in self._reversed_map :
             address = self._reversed_map[value]

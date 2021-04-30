@@ -2,7 +2,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from z3 import Int, Real, String, StringVal
 from typing import Any
-from .context import Context, Label
+from .context import Context, Label, z3ctx
 from .exceptions import CommandNotFoundException, CommandParseException, UnknownTypeException, InconsistentTypeException, UnimplementedFeatureException, InitValueException
 
 class Cmd :
@@ -88,11 +88,11 @@ class ValueInit(Command) :
 
     def _get_expr(self, _type: Any, value: str, label: str) -> Any :
         if _type == int :
-            return Int(label) == int(value)
+            return Int(label, z3ctx) == int(value)
         if _type == float :
-            return Real(label) == float(value)
+            return Real(label, z3ctx) == float(value)
         if _type == str :
-            return String(label) == StringVal(value)
+            return String(label, z3ctx) == StringVal(value, z3ctx)
 
     def execute(self, ctx: Context) -> list :
         

@@ -4,7 +4,7 @@ import collections
 from enum import Enum
 from abc import ABC, abstractmethod
 from .exceptions import VarTypeException, UnsupportedTypeException, BaseTypeException, InconsistentTypeExpression
-from .context import Context, Label
+from .context import Context, Label, z3ctx
 from .utils import remove_ctx_index, remove_var_name
 from .options import ExprKind, Types, Language, Typing
 from .memory_map import MemoryMap
@@ -18,7 +18,7 @@ global_opts = {}
 
 def set_global_datatypes() :
     global GlobalType
-    GlobalType = Datatype('GlobalType')
+    GlobalType = Datatype('GlobalType',z3ctx)
     GlobalType.declare('undefined')
     GlobalType.declare('null')
     GlobalType.declare('empty_object')
@@ -30,13 +30,13 @@ def set_global_opts(lang: Language) -> None :
     if lang == Language.Javascript :
         global_opts["typing"] = Typing.weak
 
-def get_z3_value(value: object) -> z3 :
+def get_z3_value(value: object, ctx: Context) -> z3 :
     if type(value) == int :
-        return IntVal(value)
+        return IntVal(value, z3ctx)
     elif type(value) == float :
-        return RealVal(value)
+        return RealVal(value, z3ctx)
     elif type(value) == str :
-        return StringVal(value)
+        return StringVal(value, z3ctx)
     elif type(value) == undefined :
         return GlobalType.undefined
     elif type(value) == empty_array :
@@ -46,19 +46,19 @@ def get_z3_value(value: object) -> z3 :
     elif value == None :
         return GlobalType.null
 
-def get_z3_type(name: str, t: object) -> z3 :
+def get_z3_type(name: str, t: object, ctx: Context) -> z3 :
     if t == int :
-        return Int(name)
+        return Int(name, z3ctx)
     elif t == float :
-        return Real(name)
+        return Real(name, z3ctx)
     elif t == str :
-        return String(name)
+        return String(name, z3ctx)
     elif t == undefined :
         return Const(name,GlobalType)
     elif t == null :
         return Const(name,GlobalType)
     elif t == Pointer :
-        return BitVec(name,16)
+        return BitVec(name,16, z3ctx)
     elif t == empty_array() :
         return Const(name,GlobalType)
 
@@ -233,8 +233,8 @@ class Pointer(Exe) :
     def to_ssa(self, ctx: Context, parent_label: str = None) -> None :
         ctx.add(self._label,type(self))
         lbl = ctx.get_label(self._label,Label.prev) 
-        p = BitVec(lbl, 16)
-        v = BitVecVal(int(self._addr,16),16)
+        p = BitVec(lbl, 16, z3ctx)
+        v = BitVecVal(int(self._addr,16),16, z3ctx)
         self._constraints.append(p == v)
 
     # def get_constraints(self, ctx: Context = None) -> list :
@@ -409,11 +409,11 @@ class Value(Exe) :
         else :
             lbl = self._find_label(ctx)
         if type(self._content) == int :
-            self._constraints.append(Int(lbl) == self._content)
+            self._constraints.append(Int(lbl, z3ctx) == self._content)
         elif type(self._content) == float :
-            self._constraints.append(Real(lbl) == self._content)
+            self._constraints.append(Real(lbl, z3ctx) == self._content)
         elif type(self._content) == str :
-            self._constraints.append(String(lbl) == StringVal(self._content))
+            self._constraints.append(String(lbl, z3ctx) == StringVal(self._content, z3ctx))
         elif type(self._content) == undefined :
             self._constraints.append(Const(lbl, GlobalType) == GlobalType.undefined)
 
@@ -458,7 +458,7 @@ class Expression(Exe) :
 
     def _get_z3_operator(self, first: z3, second: z3, op: str) -> BoolRef :
         if op == "!" :
-            return Not(first)
+            return Not(first,z3ctx)
         elif op == "+" :   
             return first + second
         elif op == "-" :  
@@ -482,9 +482,9 @@ class Expression(Exe) :
                 return first.sort() != second.sort()
             return first != second
         elif op == "&&" :  
-            return And(first,second)
+            return And(first,second,z3ctx)
         elif op == "||" :  
-            return Or(first,second)
+            return Or(first,second,z3ctx)
         elif op == ">" :
             return first > second
         elif op == "<" :
@@ -496,7 +496,7 @@ class Expression(Exe) :
     
     def _get_compound_value(self, first: Any, second: Any, op: str) -> Any :
         if op == "!" :
-            return Not(first)
+            return Not(first,z3ctx)
         elif op == "+" :  
             return first + second
         elif op == "-" :  
@@ -532,27 +532,27 @@ class Expression(Exe) :
             val_second = second.get_val()
             t = type(val_second)
             if t == int :
-                return [Int(first) == val_second]
+                return [Int(first, z3ctx) == val_second]
             elif t == float :
-                return [Real(first) == val_second]
+                return [Real(first, z3ctx) == val_second]
             elif t == str :
-                return [String(first) == StringVal(val_second)]
+                return [String(first, z3ctx) == StringVal(val_second, z3ctx)]
         elif t_s == Variable :
             second_lbl = second.get_label()
             type_second = ctx.get_type(second_lbl)
             if type_second == int :
-                return [Int(first) == Int(second_lbl)]
+                return [Int(first, z3ctx) == Int(second_lbl, z3ctx)]
             elif type_second == float :
-                return [Real(first) == Real(second_lbl)]
+                return [Real(first, z3ctx) == Real(second_lbl, z3ctx)]
             elif type_second == str :
-                return [String(first) == String(second_lbl)]
+                return [String(first, z3ctx) == String(second_lbl, z3ctx)]
         elif t_s == Pointer :
-            return [BitVec(first,16) == BitVecVal(int(second.get_addr(),16),16)]
+            return [BitVec(first,16, z3ctx) == BitVecVal(int(second.get_addr(),16),16, z3ctx)]
         elif t_s == Expression :
             second.to_ssa(ctx)
         else :
             t_f = ctx.get_type(first)
-            f = get_z3_type(first,t_f)
+            f = get_z3_type(first,t_f, z3ctx)
             return [f == second]
 
     def _are_both_numbers(self, t1: Any, t2: Any) -> bool :
@@ -568,7 +568,7 @@ class Expression(Exe) :
     def _get_binary_variable(self, ctx: Context, var_name: str) -> z3 :
         t_second = ctx.get_type(var_name)
         lbl_second = ctx.get_label(var_name, Label.prev)
-        return get_z3_type(lbl_second, t_second)
+        return get_z3_type(lbl_second, t_second, z3ctx)
 
     def get_constraints(self, ctx: Context = None) -> list :
         return self._constraints
@@ -581,36 +581,36 @@ class Expression(Exe) :
                 if type(self._second) == Variable :
                     second = self._get_binary_variable(ctx,self._second.get_name())
                 elif type(self._second) == Value :
-                    second = get_z3_value(self._second.get_val())
+                    second = get_z3_value(self._second.get_val(), z3ctx)
                 elif type(self._second) == Expression :
                     self._second.to_ssa(ctx)
                     second = self._second.get_constraints(ctx)[0]
             elif type(self._first) == Variable :
                 t_first = ctx.get_type(self._first.get_name())
                 lbl_first = ctx.get_label(self._first.get_name(), Label.prev)
-                first = get_z3_type(lbl_first, t_first)
+                first = get_z3_type(lbl_first, t_first, z3ctx)
                 if type(self._second) == Variable :
                     second = self._get_binary_variable(ctx,self._second.get_name())
                 elif type(self._second) == Value :
                     t_second = type(self._second.get_val())
                     self._check_consistency(t_first,t_second,self._operator)
-                    second = get_z3_value(self._second.get_val())
+                    second = get_z3_value(self._second.get_val(), z3ctx)
                 elif type(self._second) == Expression :
                     self._second.to_ssa(ctx)
                     second = self._second.get_constraints(ctx)[0]
                 elif type(self._second) == Pointer :
                     val = self._second.dereference()
                     t_second = type(val)
-                    second = get_z3_value(val)
+                    second = get_z3_value(val, z3ctx)
             elif type(self._first) == Value :
-                first = get_z3_value(self._first.get_val())
+                first = get_z3_value(self._first.get_val(), z3ctx)
                 t_first = type(self._first.get_val())
                 if type(self._second) == Variable :
                     second = self._get_binary_variable(ctx,self._second.get_name())
                     self._check_consistency(t_first,t_second,self._operator)
                 elif type(self._second) == Value :
                     self._check_consistency(type(self._first),type(self._second),self._operator)
-                    second = get_z3_value(self._second.get_val())
+                    second = get_z3_value(self._second.get_val(), z3ctx)
                 elif type(self._second) == Expression :
                     self._second.to_ssa(ctx)
                     second = self._second.get_constraints(ctx)[0]
@@ -712,7 +712,7 @@ class Conditional(Exe) :
             t = ctx.get_type(e)
             ctx.add(name,t)
             if index != last_index :
-                constraints.append(get_z3_type(e,t) == get_z3_type(last_label,t))
+                constraints.append(get_z3_type(e,t, z3ctx) == get_z3_type(last_label,t, z3ctx))
         return constraints
     
     def _diff_from(self, target: dict, source: dict, init_occ: dict) -> list :
@@ -746,9 +746,9 @@ class Conditional(Exe) :
 
     def get_constraints(self, ctx: Context = None) -> list :
         test_constraints = self.test.get_constraints()[0]
-        if_block_constraints = And(*self.if_block.get_constraints())
-        else_block_constraints = And(*self.else_block.get_constraints())
-        return [If(test_constraints,if_block_constraints,else_block_constraints)]
+        if_block_constraints = And(*self.if_block.get_constraints(),z3ctx)
+        else_block_constraints = And(*self.else_block.get_constraints(),z3ctx)
+        return [If(test_constraints,if_block_constraints,else_block_constraints, z3ctx)]
     
     def to_ssa(self, ctx: Context, parent_label: str = None) :
         init_occ = ctx.get_content()[0].copy()

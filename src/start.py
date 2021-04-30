@@ -10,6 +10,6 @@ init = {"tmp": "value:int:-4"}
 ep = EntryPoint("f2",init)
 l.set_entry_point(ep)
 l.build()
-# print(l.get_equation())
+print(l.get_equation())
 for a in l.check() :
     print(a)
