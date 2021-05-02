@@ -95,7 +95,7 @@ class Lambda :
         self._entry_point.build_body()
         self._build_calls(self._entry_point.get_list())
 
-    def _check_params(self, f: Fun, ep: EntryPoint) -> bool :
+    def _check_params(self, f: Fun, ep: EntryPoint) -> None :
         names = [e.get_name() for e in f.get_params()]
         for p in ep.get_params() :
             if p not in names :

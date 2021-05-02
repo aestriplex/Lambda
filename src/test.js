@@ -1,4 +1,5 @@
 // var f2 = (tmp) => {
+//     var a = null;
 //     var m = {
 //         "a" : 0, 
 //         "b" : 4,

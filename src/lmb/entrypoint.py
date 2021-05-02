@@ -3,6 +3,7 @@ from abc import ABC, abstractmethod
 from z3 import Int, Real, String, StringVal
 from typing import Any
 from .context import Context, Label, z3ctx
+from .structures import Pointer
 from .exceptions import CommandNotFoundException, CommandParseException, UnknownTypeException, InconsistentTypeException, UnimplementedFeatureException, InitValueException
 
 class Cmd :
@@ -15,13 +16,17 @@ class InitTypes :
     _float     = "float"
     _string    = "string"
     _null      = "null"
-    _undefined = "undefined"
 
 class Command(ABC) :
 
     def __init__(self, command: str, var: str) -> None :
         self._command = command
         self._var = var
+
+    @abstractmethod
+    def execute(self, ctx: Context) -> list : ...
+
+class TypeInit(Command) :
 
     def _parse_type(self, t: str) -> Any :
         if t == InitTypes._int :
@@ -31,33 +36,19 @@ class Command(ABC) :
         elif t == InitTypes._string :
             return str
         elif t == InitTypes._null :
-            pass
-        elif t == InitTypes._undefined :
-            pass
+            return Pointer("0x00", self._var)
         else :
             raise UnknownTypeException(t)
 
-    @abstractmethod
-    def execute(self, ctx: Context) -> list : ...
-
-class TypeInit(Command) :
-
-    # def _parse_type(self, t: str) -> Any :
-    #     if t == InitTypes._int :
-    #         return int
-    #     elif t == InitTypes._float :
-    #         return float
-    #     elif t == InitTypes._string :
-    #         return str
-    #     elif t == InitTypes._null :
-    #         pass
-    #     elif t == InitTypes._undefined :
-    #         pass
-    #     else :
-    #         raise UnknownTypeException(t)
-
     def execute(self, ctx: Context) -> list :
-        ctx.add(self._var,self._parse_type(self._command))
+        _type = self._parse_type(self._command)
+
+        if type(_type) == Pointer :
+            # the variable is initialized to null
+            _type.to_ssa(ctx)
+            return _type.get_constraints(ctx)[0]
+        
+        ctx.add(self._var,_type)
 
 class ValueInit(Command) :
 
@@ -85,6 +76,18 @@ class ValueInit(Command) :
     # def _parse_type(self, value: str) -> Any :
     #     val = self._is_digit(value)
     #     return val if val else self._parse_str(value)
+
+    def _parse_type(self, t: str) -> Any :
+        assert t != InitTypes._null, "Cannot be assigned a value of type `null`"
+
+        if t == InitTypes._int :
+            return int
+        elif t == InitTypes._float :
+            return float
+        elif t == InitTypes._string :
+            return str
+        else :
+            raise UnknownTypeException(t)
 
     def _get_expr(self, _type: Any, value: str, label: str) -> Any :
         if _type == int :
