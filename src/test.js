@@ -26,10 +26,15 @@
 // }
 
 var f2 = (tmp) => {
+    
+    if (!tmp){
+        tmp = 1
+    }
     if(tmp > 0.0) {
         tmp = 0;
     }
-    var a = null;
+
+    var a = undefined;
     if(!a){
         a = 1;
     }

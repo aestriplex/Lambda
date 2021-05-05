@@ -9,7 +9,7 @@ A python library to automate the developing of symbolic tests that works on top 
 
 ## Demo
 
-Available soon
+[http://lambdapy.net](http://lambdapy.net)
 
 ## Examples
 

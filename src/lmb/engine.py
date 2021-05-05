@@ -3,8 +3,8 @@ from z3 import And, Not, Solver, sat, unsat, Datatype, Const
 from enum import Enum
 from .options import Language
 from .parser.compiler import Compiler
-from .context import Context, z3ctx
-from .structures import Body, Exe, Fun, Call, Expression, Variable, Conditional, set_global_datatypes, set_global_opts
+from .context import Context, z3ctx, Label
+from .structures import Body, Exe, Fun, Call, Expression, Variable, Conditional, undefined, set_global_datatypes, set_global_opts, get_global_datatypes
 from .exceptions import InvalidEntryPointException, InvalidModeException, MissingParamenterException
 from .runtime import Runtime, Mode, Outcome
 from .entrypoint import EntryPoint
@@ -100,16 +100,24 @@ class Lambda :
         for p in ep.get_params() :
             if p not in names :
                 raise MissingParamenterException(f.get_name(),p)
-        # for n in names :
-        #     if n not in ep.init :
-        #         return False
+
+    def _get_undefined_params(self, f: Fun, ep: EntryPoint, ctx: Context) -> list :
+        names = [e for e in ep.get_params()]
+        undefined_params = []
+        for p in f.get_params() :
+            _n = p.get_name()
+            if _n not in names :
+                ctx.add(_n,undefined)
+                lbl = ctx.get_label(_n,Label.prev)
+                GlobalType = get_global_datatypes()
+                undefined_params.append(Const(lbl, GlobalType) == GlobalType.undefined)
+        return undefined_params
 
     def _get_entry_point_body(self, f: Fun, ep: EntryPoint) -> Body :
+        init_constraints = []
         ctx = Context()
-        # init_p = ep.init
-        # for p in init_p :
-        #     ctx.add(p,init_p[p])
-        init_constraints = ep.execute(ctx)
+        init_constraints += self._get_undefined_params(f, ep, ctx)
+        init_constraints += ep.execute(ctx)
         return Body([f], ctx, init_constraints)
 
     def set_entry_point(self, entry: EntryPoint) -> None :

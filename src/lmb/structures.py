@@ -25,6 +25,10 @@ def set_global_datatypes() :
     GlobalType.declare('empty_array')
     GlobalType = GlobalType.create()
 
+def get_global_datatypes() :
+    global GlobalType
+    return GlobalType
+
 def set_global_opts(lang: Language) -> None :
     global global_opts
     if lang == Language.Javascript :
