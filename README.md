@@ -7,10 +7,6 @@ A python library to automate the developing of symbolic tests that works on top 
 * z3
 * jsbeautifier
 
-## Demo
-
-[http://lambdapy.net](http://lambdapy.net)
-
 ## Examples
 
 You can see some examples of bounded model checking (both in STM-LIB2 and z3py) in doc/examples. The file `sample6.py` is also available on the official z3 repository
